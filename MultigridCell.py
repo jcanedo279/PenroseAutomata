@@ -32,8 +32,11 @@ class MultigridCell:
     def setVertices(self, vertices):
         self.vertices = vertices
 
-    def setrgbVal(self, rgb):
-        self.rgb = rgb
+    def setVal(self, val):
+        self.val = val
+
+    def setStability(self, isStable):
+        self.isStable = isStable
     
     def getHyperplaneEqn(self, i, t, g_i):
 		# Calculate grid angles

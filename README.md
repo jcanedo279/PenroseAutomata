@@ -41,21 +41,22 @@ Rather, each state here can be thought of as the type of tiling that comprises t
 All tilings comprise unit lengths and the vertices are uniformly distributed across the tilings with increasing and decreasing densities, such that each density occurs with frequency of the golden ratio power series.
 
 ### The following tilings are generated in high dimmensions with smaller and smaller sizes
-![n100.png](img src="https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n100.png" width=300 align=right)
+![n100.png](https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n100.png "n=100")
+<img src="https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n100.png" width="48">
 
-![n209Out.png](https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n209Out.png "n=209 size>1")
+![n209Out.png](Examples/n209Out.png "n=209 size>1")
 
-![n401Out.png](https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401Out.png "n=401 size>1 zoomed out")
+![n401Out.png](Examples/n401Out.png "n=401 size>1 zoomed out")
 
-![n401Mid.png](https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401Mid.png "n=401 size>1 zoomed in slightly")
+![n401Mid.png](Examples/n401Mid.png "n=401 size>1 zoomed in slightly")
 
-![n401In.png](https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401In.png "n=401 size>1 zoomed in")
+![n401In.png](Examples/n401In.png "n=401 size>1 zoomed in")
 
 The following images contian over 1.2 million tiles each (not types)
 
-![n501Out.png](https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n501Out.png "n=501 size>1")
+![n501Out.png](Examples/n501Out.png "n=501 size>1")
 
-![n501In.png](https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n501In.png "n=501 size>1")
+![n501In.png](Examples/n501In.png "n=501 size>1")
 
 
 ## Cellular Automata

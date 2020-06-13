@@ -41,7 +41,8 @@ Rather, each state here can be thought of as the type of tiling that comprises t
 All tilings comprise unit lengths and the vertices are uniformly distributed across the tilings with increasing and decreasing densities, such that each density occurs with frequency of the golden ratio power series.
 
 #### The following tilings are generated in high dimmensions with smaller and smaller sizes
-![n100.png](Examples/n100.png "n=100")
+######## dim=100 tiling
+<https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n100.png>
 
 ![n209Out.png](Examples/n209Out.png "n=209 size>1")
 

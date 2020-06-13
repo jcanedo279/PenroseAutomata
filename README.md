@@ -7,8 +7,7 @@ The PenroseAutomata repository comprises fours parts:
 - Misc. files (README.md, _pycache_)
 
 # Important
-***IN ORDER TO RUN**
-
+**IN ORDER TO RUN**
 There are two important things to know before running these algorithms. Most importantly, make sure that two folders named 'TrashTrees' and 'MultigridTreeData' are both in the local directory (mind the caps). Second, if prompted to download Plotly, you must execute the commands as prompted on the console (if you use python you will thank me later for this).
 
 # Running
@@ -23,31 +22,25 @@ The algorithm is successful in finding two trivial solutions, and one generalize
 This repository was initiated in order to provide a library of functions that act on the more robust of the functions.
 
 # Examples
-***Bounded partial mapping from 4 dimmensions**
-
+**Bounded partial mapping from 4 dimmensions**
 ![alt text](Examples/n4PartialMapBounded.gif "Bounded partial mapping from 4 dimensions")
 
 
-***Non-outlined from 29 dimmensions 17x17 hyperplane**
-
+**Non-outlined from 29 dimmensions 17x17 hyperplane**
 ![alt text](Examples/n29s8nonOutlinedBounded.gif "Non-outlined from 29 dimmensions 17x17 hyperplane")
 
 
-***Adaptive boundary**
-
+**Adaptive boundary**
 ![alt text](Examples/adaptiveBoundary.gif "Adaptive boundary")
 
 
-***Redundantly mapped states from 7 dimmensions**
-
+**Redundantly mapped states from 7 dimmensions**
 ![alt text](Examples/redundentlyMapped.gif "Redundantly mapped states from 7 dimmensions")
 
 
-***Game of life pattern that diverges**
-
+**Game of life pattern that diverges**
 ![alt text](Examples/divergentGOL.gif "gol pattern that diverges")
 
 
-***Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells**
-
+**Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells**
 ![alt text](Examples/oscillatorSampleGOL.gif "Sample oscillators from 10 dimmensions")

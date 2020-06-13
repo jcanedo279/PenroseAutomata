@@ -217,7 +217,7 @@ def main():
 
     numIterations = 1
     for _ in range(numIterations):
-        dim = 5
+        dim = 7
         sC = 0
         size = 7
         tileOutline = False

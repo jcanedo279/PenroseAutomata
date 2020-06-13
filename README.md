@@ -34,11 +34,11 @@ This repository was initiated in order to provide a library of functions that ac
 ## Partial mapped states:
 ![partialMapEven1.gif](Examples/partialMapEven1.gif "partialMap even 1")
 
-![partialMapEven1.gif](Examples/partialMapEven1.gif "partialMap even 2")
+![partialMapEven2.gif](Examples/partialMapEven2.gif "partialMap even 2")
 
 ![partialMapOdd1.gif](Examples/partialMapOdd1.gif "partialMap odd 1")
 
-![partialMapOdd1.gif](Examples/partialMapOdd1.gif "partialMap odd 2")
+![partialMapOdd2.gif](Examples/partialMapOdd2.gif "partialMap odd 2")
 
 ## Deep potential wells as acheieved by certain even dimmensions:
 ![deepWells1.gif](Examples/deepWells1.gif "deep well 1")

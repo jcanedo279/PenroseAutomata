@@ -196,9 +196,9 @@ def main():
 
     numIterations = 1
     for _ in range(numIterations):
-        dim = 29
+        dim = 101
         sC = 0
-        size = 8
+        size = 1
         tileOutline = False
         alpha = 1
         shiftZeroes, shiftRandom, shiftByHalves = False, True, False
@@ -210,8 +210,8 @@ def main():
         elif isRadBySize:
             numColors = size+1
         tileSize = 10
-        minGen = 21
-        maxGen = 20
+        minGen = 11
+        maxGen = 10
 
         gol=False
 

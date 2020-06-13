@@ -23,27 +23,41 @@ The algorithm is successful in finding two trivial solutions, and one generalize
 This repository was initiated in order to provide a library of functions that act on the more robust of the functions.
 
 # Examples
-**Bounded partial mapping from 4 dimmensions**
-![n4PartialMapBounded.gif](Examples/n4PartialMapBounded.gif "Bounded partial mapping from 4 dimensions")
+## Convergent merging algorithms:
+![convergentMerge1.gif](Examples/convergentMerge1.gif "convergent merge 1")
 
+![convergentMerge2.gif](Examples/convergentMerge2.gif "convergent merge 2")
 
-**Non-outlined from 29 dimmensions 17x17 hyperplane**
-![n29s8nonOutlinedBounded.gif](Examples/n29s8nonOutlinedBounded.gif "Non-outlined from 29 dimmensions 17x17 hyperplane")
+## Redundantly mapped states from 7 dimmensions:
+![multiMap.gif](Examples/multiMap.gif "multiMap")
 
+## Partial mapped states:
+![partialMapEven1.gif](Examples/partialMapEven1.gif "partialMap even 1")
 
-**Adaptive boundary**
+![partialMapEven1.gif](Examples/partialMapEven1.gif "partialMap even 2")
 
+![partialMapOdd1.gif](Examples/partialMapOdd1.gif "partialMap odd 1")
+
+![partialMapOdd1.gif](Examples/partialMapOdd1.gif "partialMap odd 2")
+
+## Deep potential wells as acheieved by certain even dimmensions:
+![deepWells1.gif](Examples/deepWells1.gif "deep well 1")
+
+![deepWells2.gif](Examples/deepWells2.gif "deep well 2")
+
+## Combining deep potential wells and redundant mapping:
+![deepWellMultiMap1.gif](Examples/deepWellMultiMap1.gif "deep well ultiMap 1")
+
+![deepWellMultiMap2.gif](Examples/deepWellMultiMap2.gif "deep well ultiMap 2")
+
+![deepWellMultiMap3.gif](Examples/deepWellMultiMap3.gif "deep well ultiMap 2")
+
+## Adaptive boundary:
 ![adaptiveBoundary.gif](Examples/adaptiveBoundary.gif "Adaptive boundary")
 
-
-**Redundantly mapped states from 7 dimmensions**
-![redundentlyMapped.gif](Examples/redundentlyMapped.gif "Redundantly mapped states from 7 dimmensions")
-
-
-**Game of life pattern that diverges**
+**Game of life pattern that diverges:**
 
 ![divergentGOL.gif](Examples/divergentGOL.gif "gol pattern that diverges")
 
-
-**Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells**
+**Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells:**
 ![oscillatorSampleGOL.gif](Examples/oscillatorSampleGOL.gif "Sample oscillators from 10 dimmensions")

@@ -24,26 +24,26 @@ This repository was initiated in order to provide a library of functions that ac
 
 # Examples
 **Bounded partial mapping from 4 dimmensions**
-![alt text](Examples/n4PartialMapBounded.gif "Bounded partial mapping from 4 dimensions")
+![n4PartialMapBounded.gif](Examples/n4PartialMapBounded.gif "Bounded partial mapping from 4 dimensions")
 
 
 **Non-outlined from 29 dimmensions 17x17 hyperplane**
-![alt text](Examples/n29s8nonOutlinedBounded.gif "Non-outlined from 29 dimmensions 17x17 hyperplane")
+![n29s8nonOutlinedBounded.gif](Examples/n29s8nonOutlinedBounded.gif "Non-outlined from 29 dimmensions 17x17 hyperplane")
 
 
 **Adaptive boundary**
 
-![alt text](Examples/adaptiveBoundary.gif "Adaptive boundary")
+![adaptiveBoundary.gif](Examples/adaptiveBoundary.gif "Adaptive boundary")
 
 
 **Redundantly mapped states from 7 dimmensions**
-![alt text](Examples/redundentlyMapped.gif "Redundantly mapped states from 7 dimmensions")
+![redundentlyMapped.gif](Examples/redundentlyMapped.gif "Redundantly mapped states from 7 dimmensions")
 
 
 **Game of life pattern that diverges**
 
-![alt text](Examples/divergentGOL.gif "gol pattern that diverges")
+![divergentGOL.gif](Examples/divergentGOL.gif "gol pattern that diverges")
 
 
 **Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells**
-![alt text](Examples/oscillatorSampleGOL.gif "Sample oscillators from 10 dimmensions")
+![oscillatorSampleGOL.gif](Examples/oscillatorSampleGOL.gif "Sample oscillators from 10 dimmensions")

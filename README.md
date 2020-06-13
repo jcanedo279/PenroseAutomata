@@ -57,15 +57,20 @@ The following tiling contians over 1.2 million tiles
 ## Cellular Automata
 #### Convergent merging algorithms:
 We can set any initial condition on any tiing (the more symmetric the easier) then apply state transitions for each tile relative to surrounding tile states.
-This has the effect of averaging the values in an autonomistic fassion in that each automaton has innate variation in its transition rules that allows for emergent behaviour
+This has the effect of averaging the values in an autonomistic fassion in that each automaton has innate variation in its transition rules that allows for emergent behaviour.
 ![convergentMerge1.gif](Examples/convergentMerge1.gif "convergent merge 1")
 
 ![convergentMerge2.gif](Examples/convergentMerge2.gif "convergent merge 2")
 
 #### Redundantly mapped states from 7 dimmensions:
-![multiMap.gif](Examples/multiMap.gif "multiMap")
+A redundantly mapping algorithm is one in which the bouding function that maps from the number of states to the number of boundaries is not one to one.
+That is, that there are more states than boundaries (preferably by at least one order of magnitude).
+![multiMap1.gif](Examples/multiMap1.gif "multiMap 1")
+
+![multiMap2.gif](Examples/multiMap2.gif "multiMap 2")
 
 #### Partially mapped states:
+A partially mapping algorithm is one in which the bouding function is not only one to one, but also the transition from state to state is slow.
 ![partialMapEven1.gif](Examples/partialMapEven1.gif "partialMap even 1")
 
 ![partialMapEven2.gif](Examples/partialMapEven2.gif "partialMap even 2")
@@ -75,22 +80,31 @@ This has the effect of averaging the values in an autonomistic fassion in that e
 ![partialMapOdd2.gif](Examples/partialMapOdd2.gif "partialMap odd 2")
 
 #### Deep potential wells as acheieved by certain even dimmensions:
+In certain even dimmensions (8, 10, 12), deep potential wells form where the geometric/topological frustration of the vertices on the plane force
+tiling patterns to become localized almost forming emmergent patterns/units. Here certain geometric properties of the tilings make it so that information
+in these systems tend towards potential wells whose boundaries are defined by the emergent patterns.
 ![deepWells1.gif](Examples/deepWells1.gif "deep well 1")
 
 ![deepWells2.gif](Examples/deepWells2.gif "deep well 2")
 
 #### Combining deep potential wells and redundant mapping:
-![deepWellMultiMap1.gif](Examples/deepWellMultiMap1.gif "deep well ultiMap 1")
+In contrast to the more crystalline state evolution of deep potential well algorithms, redundantly mapped algorithms on potential wells form amorphous patterns
+similar to those of redundant mapping algs but more crystalline.
+![deepWellMultiMap1.gif](Examples/deepWellMultiMap1.gif "deep well multiMap 1")
 
-![deepWellMultiMap2.gif](Examples/deepWellMultiMap2.gif "deep well ultiMap 2")
-
-![deepWellMultiMap3.gif](Examples/deepWellMultiMap3.gif "deep well ultiMap 2")
+![deepWellMultiMap2.gif](Examples/deepWellMultiMap2.gif "deep well multiMap 2")
 
 #### Adaptive boundary:
+Adaptive bundary algorithms are those in which the background or end of the tiling are updated via a function.
+Here the function is the boundary color of the mean of board.
 ![adaptiveBoundary.gif](Examples/adaptiveBoundary.gif "Adaptive boundary")
 
 #### Game of life pattern that diverges:
+In a gol algorithm in which a high neighbour count seeds an on state, we get a divergent system.
+Here we are on if nCount is greater than 4 and smaller than 7
 ![divergentGOL.gif](Examples/divergentGOL.gif "gol pattern that diverges")
 
 #### Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells:
+If we shift the acceptance bounds down by one we get a quickly convergent algorithm, where we are left with some sample 10d pt gol oscillators
+Here we are on if nCount is greater than 3 and smaller than 6
 ![oscillatorSampleGOL.gif](Examples/oscillatorSampleGOL.gif "Sample oscillators from 10 dimmensions")

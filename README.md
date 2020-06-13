@@ -6,14 +6,21 @@ The PenroseAutomata repository comprises fours parts:
 - 2 folders used for caching data ('TrashTrees', 'MultigridTreeData')
 - Misc. files (README.md, _pycache_)
 
-# Important
-**IN ORDER TO RUN**
-
+# Read This Before Running
+## IMPORTANT
 There are two important things to know before running these algorithms. Most importantly, make sure that two folders named 'TrashTrees' and 'MultigridTreeData' are both in the local directory (mind the caps). Second, if prompted to download Plotly, you must execute the commands as prompted on the console (if you use python you will thank me later for this).
 
-# Running
-Running these algorithms will generally involve creating MultigridTree objects with different parameters. Feel free to tweak the files to your whims, currently the constructor will generate a gif saved to one of the local sub-directories. Creating a QuadTree object specifically involves creating a 4 dimensional MultigridTree object and transferring its data back and forth between the grid and quadTree objects.
+# How To Run
+To familiarize yourself with how these scripts work, run MultigridTree.py locally via main(). Notice that this will create a folder in 'TrashTrees' or 'MultigridTreeData'.
+If the tiling automata survives to maxGen generations, it will be palced in 'MultigridTreeData', otherwise it will be placed in 'TrashTrees'.
+The Dimmension of the tiling is given by dim, and the size is given by size. Notice the tiling has (dim choose 2)*size*size tiles.
+sC of 0 makes a true penrose tiling, while 1/2 makes a generalized tiling.
+shiftZeroes, shiftRandom, shiftByHalves should be tempered with at your discretion.
+isRadByDim, isRadBySize set streaked and radial initial conditions for the tiling respectively.
+numColors is the number of boundaries in the tiling, numStates is the number of total states. Notice that numStates >= numColors
+gol is a boolean, setting it to True sets and updates tile values in binary as the game of life does, this can be specified in Multigrid.updateTileValsGOL()
 
+Running these algorithms will generally involve creating MultigridTree objects with different parameters. Feel free to tweak the files to your whims, currently the constructor will generate a gif saved to one of the local sub-directories. Creating a QuadTree object specifically involves creating a 4 dimensional MultigridTree object and transferring its data back and forth between the grid and quadTree objects.
 
 # Brief History
 This repository exists in lieu of the PenroseTiler repository. The PenroseTiler repository itself comprises the scripts necessary to run a genetic algorithm used to find the set of valid functions that project from a mother lattice to an arbitrary tiling described be a series of objects. The tilings are evaluated using brute force to calculate the number of white (or untiled) pixels to evaluate the fitness of several functions.
@@ -31,7 +38,7 @@ This repository was initiated in order to provide a library of functions that ac
 ## Redundantly mapped states from 7 dimmensions:
 ![multiMap.gif](Examples/multiMap.gif "multiMap")
 
-## Partial mapped states:
+## Partially mapped states:
 ![partialMapEven1.gif](Examples/partialMapEven1.gif "partialMap even 1")
 
 ![partialMapEven2.gif](Examples/partialMapEven2.gif "partialMap even 2")
@@ -55,9 +62,8 @@ This repository was initiated in order to provide a library of functions that ac
 ## Adaptive boundary:
 ![adaptiveBoundary.gif](Examples/adaptiveBoundary.gif "Adaptive boundary")
 
-**Game of life pattern that diverges:**
-
+## Game of life pattern that diverges:
 ![divergentGOL.gif](Examples/divergentGOL.gif "gol pattern that diverges")
 
-**Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells:**
+## Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells:
 ![oscillatorSampleGOL.gif](Examples/oscillatorSampleGOL.gif "Sample oscillators from 10 dimmensions")

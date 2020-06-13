@@ -30,12 +30,12 @@ This repository was initiated in order to provide a library of functions that ac
 
 ***Non-outlined from 29 dimmensions 17x17 hyperplane***
 
-![alt text](Examples/n29s8noOutlineBounded.gif "Non-outlined from 29 dimmensions 17x17 hyperplane")
+![alt text](Examples/n29s8nonOutlinedBounded.gif "Non-outlined from 29 dimmensions 17x17 hyperplane")
 
 
 ***Adaptive boundary***
 
-![alt text](Examples/n29s8noOutlineBounded.gif "Adaptive boundary")
+![alt text](Examples/adaptiveBoundary.gif "Adaptive boundary")
 
 
 ***Redundantly mapped states from 7 dimmensions***

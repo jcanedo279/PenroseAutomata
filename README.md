@@ -40,30 +40,32 @@ Rather, each state here can be thought of as the type of tiling that comprises t
      - if dim is even: there are (dim/2)-1 types of tiles
 All tilings comprise unit lengths and the vertices are uniformly distributed across the tilings with increasing and decreasing densities, such that each density occurs with frequency of the golden ratio power series.
 
-### The following tilings are generated in high dimmensions with smaller and smaller sizes
+###### The following tilings are generated in high dimmensions with smaller and smaller sizes
 ![n100.png](Examples/n100.png "n=100")
 
 ![n209Out.png](Examples/n209Out.png "n=209 size>1")
 
+The following tiling contians over 2 million tiles
+
 ![n401Mid.png](Examples/n401Mid.png "n=401 size>1 zoomed in slightly")
 
-The following Tiling contians over 1.2 million tiles each (not types)
+The following tiling contians over 1.2 million tiles
 
-![n501In.png](Examples/n501In.png "n=501 size>1")
+![n501In.png](Examples/n501In.png "n=501 size>0")
 
 
 ## Cellular Automata
-## Convergent merging algorithms:
+###### Convergent merging algorithms:
 We can set any initial condition on any tiing (the more symmetric the easier) then apply state transitions for each tile relative to surrounding tile states.
 This has the effect of averaging the values in an autonomistic fassion in that each automaton has innate variation in its transition rules that allows for emergent behaviour
 ![convergentMerge1.gif](Examples/convergentMerge1.gif "convergent merge 1")
 
 ![convergentMerge2.gif](Examples/convergentMerge2.gif "convergent merge 2")
 
-### Redundantly mapped states from 7 dimmensions:
+###### Redundantly mapped states from 7 dimmensions:
 ![multiMap.gif](Examples/multiMap.gif "multiMap")
 
-### Partially mapped states:
+###### Partially mapped states:
 ![partialMapEven1.gif](Examples/partialMapEven1.gif "partialMap even 1")
 
 ![partialMapEven2.gif](Examples/partialMapEven2.gif "partialMap even 2")
@@ -72,23 +74,23 @@ This has the effect of averaging the values in an autonomistic fassion in that e
 
 ![partialMapOdd2.gif](Examples/partialMapOdd2.gif "partialMap odd 2")
 
-### Deep potential wells as acheieved by certain even dimmensions:
+###### Deep potential wells as acheieved by certain even dimmensions:
 ![deepWells1.gif](Examples/deepWells1.gif "deep well 1")
 
 ![deepWells2.gif](Examples/deepWells2.gif "deep well 2")
 
-### Combining deep potential wells and redundant mapping:
+###### Combining deep potential wells and redundant mapping:
 ![deepWellMultiMap1.gif](Examples/deepWellMultiMap1.gif "deep well ultiMap 1")
 
 ![deepWellMultiMap2.gif](Examples/deepWellMultiMap2.gif "deep well ultiMap 2")
 
 ![deepWellMultiMap3.gif](Examples/deepWellMultiMap3.gif "deep well ultiMap 2")
 
-### Adaptive boundary:
+###### Adaptive boundary:
 ![adaptiveBoundary.gif](Examples/adaptiveBoundary.gif "Adaptive boundary")
 
-### Game of life pattern that diverges:
+###### Game of life pattern that diverges:
 ![divergentGOL.gif](Examples/divergentGOL.gif "gol pattern that diverges")
 
-### Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells:
+###### Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells:
 ![oscillatorSampleGOL.gif](Examples/oscillatorSampleGOL.gif "Sample oscillators from 10 dimmensions")

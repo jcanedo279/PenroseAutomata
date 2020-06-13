@@ -6,8 +6,7 @@ The PenroseAutomata repository comprises fours parts:
 - 2 folders used for caching data ('TrashTrees', 'MultigridTreeData')
 - Misc. files (README.md, _pycache_)
 
-# Read This Before Running
-## IMPORTANT
+# Before Running
 There are two important things to know before running these algorithms. Most importantly, make sure that two folders named 'TrashTrees' and 'MultigridTreeData' are both in the local directory (mind the caps). Second, if prompted to download Plotly, you must execute the commands as prompted on the console (if you use python you will thank me later for this).
 
 # How To Run

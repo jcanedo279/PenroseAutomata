@@ -183,7 +183,7 @@ class Multigrid:
             n = self.multiGrid[neighbour[0]][neighbour[1]][neighbour[2]][neighbour[3]]
             t1neighbourValTotal += n.val
             nBound = self.valToBound(n.val)
-            if (nBound != currBound) or (n.val==-1):
+            if (n.val==-1) or (nBound != currBound):
                 t1isStable = False
                 t1.setStability(False)
                 t1index = (t1.r, t1.a, t1.s, t1.b)
@@ -349,6 +349,7 @@ class Multigrid:
                         color = colorList[tileType]
 
                         p_rs_ab = MultigridCell(self.dim, r, s, a, b, self.shiftVect[r], self.shiftVect[s], tileType)
+                        p_rs_ab.setStability(False)
                         if not self.isValuedGrid:
                             p_rs_ab.setColor(color)
                             p_rs_ab.setVal(tileType)

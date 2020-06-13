@@ -17,13 +17,18 @@ from Multigrid import Multigrid
 
 class MultigridTree:
     def __init__(self, dim, sC, size, tileSize, shiftZeroes, shiftRandom, shiftByHalves, tileOutline, alpha, c, maxGen,
-                 isValued=True, valIsRadByDim=False, valIsRadBySize=False, valRatio=None, numStates=None, gol=False):
+                 isValued=True, valIsRadByDim=False, valIsRadBySize=False, valRatio=None, numStates=None, gol=False, overide=False):
 
         self.stability = []
         self.numBoundaries = []
         self.isBoundaried = True
 
-        self.gol=gol
+        self.gol = gol
+
+        self.overide = overide
+
+        self.prevPercentStable = 1
+        self.percentStableRepeatCount = 0
 
         self.startTime = time.time()
         self.dim, self.sC, self.size = dim, sC, size
@@ -82,6 +87,7 @@ class MultigridTree:
         print('Tile neighbourhood generated')
         origGrid.displayTiling()
         self.origAx = origGrid.ax
+        
 
         if self.animating:
             self.currentGrid = origGrid
@@ -122,7 +128,6 @@ class MultigridTree:
 
     def initPlot(self):
         self.ax.cla()
-        self.ax = self.origAx
         #if self.numTilings > 1:
         #    self.multigridTree[self.ptIndex-2].fig.clf()
         #    self.multigridTree[self.ptIndex-2].ax.cla()
@@ -134,8 +139,24 @@ class MultigridTree:
         self.stability.append(origGrid.percentStable)
         if self.isBoundaried:
             self.numBoundaries.append(nextGrid.numBoundaries)
-        if (origGrid.percentStable > 0.9) and (not self.gol):
+            if self.ptIndex==1:
+                self.origNumBoundaries = nextGrid.numBoundaries
+        if self.ptIndex > 1:
+            if nextGrid.numBoundaries/self.origNumBoundaries == self.prevPercentStable:
+                self.percentStableRepeatCount += 1
+            else:
+                self.percentStableRepeatCount = 0
+            self.prevPercentStable = nextGrid.numBoundaries/self.origNumBoundaries
+            #print(nextGrid.numBoundaries/self.origNumBoundaries, origGrid.numBoundaries, self.percentStableRepeatCount)
+        if (not self.gol) and (not self.overide) and (self.ptIndex > 1) and ((nextGrid.numBoundaries/self.origNumBoundaries < 0.5) or (self.percentStableRepeatCount > 1)):
             self.continueAnimation = False
+
+
+    
+        if (self.ptIndex > 1) and (self.percentStableRepeatCount > 1) and (not self.gol):
+            self.continueAnimation = False
+
+
         if self.dim < 7:
             shiftVectStr = ', '.join(str(round(i,1)) for i in origGrid.shiftVect)
             title = 'n={}, size={}, sC={}, sV=[{}], gen={}'.format(self.dim, self.size, self.sC, shiftVectStr, self.ptIndex)
@@ -196,27 +217,29 @@ def main():
 
     numIterations = 1
     for _ in range(numIterations):
-        dim = 101
+        dim = 8
         sC = 0
-        size = 1
+        size = 8
         tileOutline = False
         alpha = 1
         shiftZeroes, shiftRandom, shiftByHalves = False, True, False
         isRadByDim, isRadBySize = False, False
-        numColors = 1000
-        numStates = 1000
+        numColors = 10000
+        numStates = 100000
         if isRadByDim:
             numColors = dim
         elif isRadBySize:
             numColors = size+1
         tileSize = 10
-        minGen = 11
-        maxGen = 10
+        minGen = 50
+        maxGen = 50
 
         gol=False
 
+        overide=False
+
         tree = MultigridTree(dim, sC, size, tileSize, shiftZeroes, shiftRandom, shiftByHalves, tileOutline, alpha, numColors, maxGen,
-                             isValued=True, valIsRadByDim=isRadByDim, valIsRadBySize=isRadBySize, numStates=numStates, gol=gol)
+                             isValued=True, valIsRadByDim=isRadByDim, valIsRadBySize=isRadBySize, numStates=numStates, gol=gol, overide=overide)
 
         group_labels_stdDev = ['percentage of stable tiles'] # name of the dataset
         hist_data_stdDev = [tree.stability]

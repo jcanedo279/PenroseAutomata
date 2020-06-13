@@ -41,18 +41,22 @@ Rather, each state here can be thought of as the type of tiling that comprises t
 All tilings comprise unit lengths and the vertices are uniformly distributed across the tilings with increasing and decreasing densities, such that each density occurs with frequency of the golden ratio power series.
 
 #### The following tilings are generated in high dimmensions with smaller and smaller sizes
-######## dim=100 tiling
+###### dim=100 tiling
 <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n100.png>
 
-![n209Out.png](Examples/n209Out.png "n=209 size>1")
+###### dim=209 tiling
+<https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n209Out.png>
 
+###### dim=401 tiling
 The following tiling contians over 2 million tiles
+<https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401Out.png>
+<https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401Mid.png>
+<https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401In.png>
 
-![n401Mid.png](Examples/n401Mid.png "n=401 size>1 zoomed in slightly")
-
+###### dim=501 tiling
 The following tiling contians over 1.2 million tiles
-
-![n501In.png](Examples/n501In.png "n=501 size>0")
+<https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n501Out.png>
+<https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n501In.png>
 
 
 ## Cellular Automata

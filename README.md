@@ -42,21 +42,21 @@ All tilings comprise unit lengths and the vertices are uniformly distributed acr
 
 #### The following tilings are generated in high dimmensions with smaller and smaller sizes
 ###### dim=100 tiling
-<https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n100.png>
+- <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n100.png>
 
 ###### dim=209 tiling
-<https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n209Out.png>
+- <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n209Out.png>
 
 ###### dim=401 tiling
 The following tiling contians over 2 million tiles
-<https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401Out.png>
-<https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401Mid.png>
-<https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401In.png>
+- <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401Out.png>
+- <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401Mid.png>
+- <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401In.png>
 
 ###### dim=501 tiling
 The following tiling contians over 1.2 million tiles
-<https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n501Out.png>
-<https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n501In.png>
+- <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n501Out.png>
+- <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n501In.png>
 
 
 ## Cellular Automata

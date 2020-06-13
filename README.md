@@ -1,6 +1,3 @@
-# If Here For Pretty Pictures
-If you are here for the prety pictures and gifs, please go towards the bottom and skip the cs/math
-
 # PenroseAutomata
      A series of algorithms to automate the PT calculated in the PenroseTiler repository
 The PenroseAutomata repository comprises fours parts:
@@ -8,6 +5,9 @@ The PenroseAutomata repository comprises fours parts:
 - The supplementary scripts (QuadTree)
 - 2 folders used for caching data ('TrashTrees', 'MultigridTreeData')
 - Misc. files (README.md, _pycache_)
+
+# If Here For Pretty Pictures
+If you are here for the prety pictures and gifs, please go towards the bottom and skip the cs/math
 
 # Before Running
 There are two important things to know before running these algorithms. Most importantly, make sure that two folders named 'TrashTrees' and 'MultigridTreeData' are both in the local directory (mind the caps). Second, if prompted to download Plotly, you must execute the commands as prompted on the console (if you use python you will thank me later for this).
@@ -45,15 +45,9 @@ All tilings comprise unit lengths and the vertices are uniformly distributed acr
 
 ![n209Out.png](Examples/n209Out.png "n=209 size>1")
 
-![n401Out.png](Examples/n401Out.png "n=401 size>1 zoomed out")
-
 ![n401Mid.png](Examples/n401Mid.png "n=401 size>1 zoomed in slightly")
 
-![n401In.png](Examples/n401In.png "n=401 size>1 zoomed in")
-
-The following images contian over 1.2 million tiles each (not types)
-
-![n501Out.png](Examples/n501Out.png "n=501 size>1")
+The following Tiling contians over 1.2 million tiles each (not types)
 
 ![n501In.png](Examples/n501In.png "n=501 size>1")
 

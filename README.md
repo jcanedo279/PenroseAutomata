@@ -8,6 +8,7 @@ The PenroseAutomata repository comprises fours parts:
 
 # Important
 **IN ORDER TO RUN**
+
 There are two important things to know before running these algorithms. Most importantly, make sure that two folders named 'TrashTrees' and 'MultigridTreeData' are both in the local directory (mind the caps). Second, if prompted to download Plotly, you must execute the commands as prompted on the console (if you use python you will thank me later for this).
 
 # Running
@@ -31,6 +32,7 @@ This repository was initiated in order to provide a library of functions that ac
 
 
 **Adaptive boundary**
+
 ![alt text](Examples/adaptiveBoundary.gif "Adaptive boundary")
 
 
@@ -39,6 +41,7 @@ This repository was initiated in order to provide a library of functions that ac
 
 
 **Game of life pattern that diverges**
+
 ![alt text](Examples/divergentGOL.gif "gol pattern that diverges")
 
 

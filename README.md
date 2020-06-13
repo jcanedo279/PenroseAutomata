@@ -18,3 +18,7 @@ The PenroseAutomata repository comprises fours parts:
      This repository exists in lieu of the PenroseTiler repository. The PenroseTiler repository itself comprises the scripts necessary to run a genetic algorithm used to find the set of valid functions that project from a mother lattice to an arbitrary tiling described be a series of objects. The tilings are evaluated using brute force to calculate the number of white (or untiled) pixels to evaluate the fitness of several functions.
      The algorithm is successful in finding two trivial solutions, and one generalized solution. The two trivial solutions are capable of producing generalized crystalline tilings while the generalized solution is much more robust and can handle many more shift vector initial conditions.
      This repository was initiated in order to provide a library of functions that act on the more robust of the functions.
+
+# Examples
+
+![alt text](Examples/n4PartialMapBounded.gif "Bounded partial mapping from 4 dimensions")

@@ -17,11 +17,13 @@ from Multigrid import Multigrid
 
 class MultigridTree:
     def __init__(self, dim, sC, size, tileSize, shiftZeroes, shiftRandom, shiftByHalves, tileOutline, alpha, c, maxGen,
-                 isValued=True, valIsRadByDim=False, valIsRadBySize=False, valRatio=None, numStates=None):
+                 isValued=True, valIsRadByDim=False, valIsRadBySize=False, valRatio=None, numStates=None, gol=False):
 
         self.stability = []
         self.numBoundaries = []
         self.isBoundaried = True
+
+        self.gol=gol
 
         self.startTime = time.time()
         self.dim, self.sC, self.size = dim, sC, size
@@ -64,7 +66,7 @@ class MultigridTree:
                             self.shiftByHalves, self.tileOutline, self.alpha, rootPath=self.localTrashPath,
                             isValued=self.isValued, valIsRadByDim=valIsRadByDim, valIsRadBySize=valIsRadBySize,
                             bounds=self.bounds, boundToCol=self.boundToCol, boundToPC=self.boundToPC,
-                            ptIndex=self.ptIndex, valRatio=self.valRatio, numStates=self.numStates, colors=self.colors)
+                            ptIndex=self.ptIndex, valRatio=self.valRatio, numStates=self.numStates, colors=self.colors, gol=self.gol)
         self.animating = True
         self.continueAnimation = True
         if self.animating:
@@ -74,11 +76,12 @@ class MultigridTree:
             origGrid.setFigs(self.ax)
         #self.ptIndex += 1
 
-        origGrid.makeTiling(printImage=False)
+        origGrid.makeTiling()
         print('Original tile generated')
         origGrid.genTileNeighbourhoods()
         print('Tile neighbourhood generated')
         origGrid.displayTiling()
+        self.origAx = origGrid.ax
 
         if self.animating:
             self.currentGrid = origGrid
@@ -101,6 +104,7 @@ class MultigridTree:
 
     def genFrames(self):
         while (self.ptIndex < self.maxGen-1)  and self.continueAnimation:
+            self.ax.cla()
             yield self.ptIndex
         yield StopIteration
 
@@ -118,6 +122,7 @@ class MultigridTree:
 
     def initPlot(self):
         self.ax.cla()
+        self.ax = self.origAx
         #if self.numTilings > 1:
         #    self.multigridTree[self.ptIndex-2].fig.clf()
         #    self.multigridTree[self.ptIndex-2].ax.cla()
@@ -129,7 +134,7 @@ class MultigridTree:
         self.stability.append(origGrid.percentStable)
         if self.isBoundaried:
             self.numBoundaries.append(nextGrid.numBoundaries)
-        if origGrid.percentStable > 0.9:
+        if (origGrid.percentStable > 0.9) and (not self.gol):
             self.continueAnimation = False
         if self.dim < 7:
             shiftVectStr = ', '.join(str(round(i,1)) for i in origGrid.shiftVect)
@@ -189,27 +194,29 @@ def main():
         for tF in tFiles:
             shutil.rmtree(tF)
 
-    numIterations = 100
+    numIterations = 1
     for _ in range(numIterations):
-        dim = 4
+        dim = 29
         sC = 0
-        size = 30
-        tileOutline = True
+        size = 8
+        tileOutline = False
         alpha = 1
         shiftZeroes, shiftRandom, shiftByHalves = False, True, False
         isRadByDim, isRadBySize = False, False
-        numColors = 10000
-        numStates = 10000
+        numColors = 1000
+        numStates = 1000
         if isRadByDim:
             numColors = dim
         elif isRadBySize:
             numColors = size+1
         tileSize = 10
-        minGen = 30
-        maxGen = 40
+        minGen = 21
+        maxGen = 20
+
+        gol=False
 
         tree = MultigridTree(dim, sC, size, tileSize, shiftZeroes, shiftRandom, shiftByHalves, tileOutline, alpha, numColors, maxGen,
-                             isValued=True, valIsRadByDim=isRadByDim, valIsRadBySize=isRadBySize, numStates=numStates)
+                             isValued=True, valIsRadByDim=isRadByDim, valIsRadBySize=isRadBySize, numStates=numStates, gol=gol)
 
         group_labels_stdDev = ['percentage of stable tiles'] # name of the dataset
         hist_data_stdDev = [tree.stability]

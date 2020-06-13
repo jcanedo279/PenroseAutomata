@@ -54,7 +54,7 @@ class QuadTree:
         ## Uses genValMap, findRootTile, and findNeighbour to convert tree's projected tiling into a valued 2d list
         self.genValMap()
         ## This is the call to the divide and conquer recursive function subdivideGrid, returns the root of the quadTree
-        self.quadRoot = self.subdivideGrid(0, self.maxSideLen, 0, self.maxSideLen)
+        self.quadRoot = self.makeQuadTree()
 
 
 
@@ -150,7 +150,7 @@ class QuadTree:
         else:
             ## Saving the non-uniform grid to the QuadNode is important if you 
             # want to compress space or hash state changes
-            currNode = QuadNode(currQuadrant, math.sqrt(len(currQuadrant)), False, None, None, None, None)
+            currNode = QuadNode(hashQuad, math.sqrt(len(currQuadrant)), False, None, None, None, None)
         self.quadToNode.update({hashQuad:currNode})
         return self.quadToNode.get(hashQuad)
 
@@ -181,6 +181,9 @@ class QuadTree:
         node.isCompletelyHashed = True
         return node
 
+    def makeQuadTree(self):
+        return self.subdivideGrid(0, self.maxSideLen, 0, self.maxSideLen)
+
     def printQuadTreeNodes(self, currNode, allNodes=False, dispid=False):
         if dispid:
             print(id(currNode))
@@ -189,33 +192,33 @@ class QuadTree:
             print('size={}'.format(currNode.sideLen))
         elif currNode.isLeaf:
             print('val={}, size={}'.format(currNode.val, currNode.sideLen))
-        else:
+        if not currNode.isLeaf:
             if currNode.bottomLeft != None:
-                self.printQuadTreeNodes(currNode.bottomLeft)
+                self.printQuadTreeNodes(currNode.bottomLeft, allNodes=allNodes, dispid=dispid)
             if currNode.bottomRight != None:
-                self.printQuadTreeNodes(currNode.bottomRight)
+                self.printQuadTreeNodes(currNode.bottomRight, allNodes=allNodes, dispid=dispid)
             if currNode.topLeft != None:
-                self.printQuadTreeNodes(currNode.topLeft)
+                self.printQuadTreeNodes(currNode.topLeft, allNodes=allNodes, dispid=dispid)
             if currNode.topRight != None:
-                self.printQuadTreeNodes(currNode.topRight)
+                self.printQuadTreeNodes(currNode.topRight, allNodes=allNodes, dispid=dispid)
 
 
 def main():
     dim = 4
     sC = 0
-    size = 30
+    size = 5
 
-    numStates = 100
-    numColors = 100
+    numStates = 10
+    numColors = 10
 
     tileOutline = True
     alpha = 1
     isRadByDim, isRadBySize = False, False
 
-    maxGen = 1
+    maxGen = 0
 
     quadTree = QuadTree(dim, sC, size, numStates, numColors, tileOutline, alpha, isRadByDim, isRadBySize, maxGen)
-    quadTree.printQuadTreeNodes(quadTree.quadRoot)
+    quadTree.printQuadTreeNodes(quadTree.quadRoot, dispid=True)
 
 if __name__=='__main__':
     main()

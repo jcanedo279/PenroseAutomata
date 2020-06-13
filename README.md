@@ -8,43 +8,46 @@ The PenroseAutomata repository comprises fours parts:
 
 # Important
 ***IN ORDER TO RUN***
+
      There are two important things to know before running these algorithms. Most importantly, make sure that two folders named 'TrashTrees' and 'MultigridTreeData' are both in the local directory (mind the caps). Second, if prompted to download Plotly, you must execute the commands as prompted on the console (if you use python you will thank me later for this).
 
 # Running
-     Running these algorithms will generally involve creating MultigridTree objects with different parameters. Feel free to tweak the files to your whims, currently the constructor will generate a gif saved to one of the local sub-directories. Creating a QuadTree object specifically involves creating a 4 dimensional MultigridTree object and transferring its data back and forth between the grid and quadTree objects.
+Running these algorithms will generally involve creating MultigridTree objects with different parameters. Feel free to tweak the files to your whims, currently the constructor will generate a gif saved to one of the local sub-directories. Creating a QuadTree object specifically involves creating a 4 dimensional MultigridTree object and transferring its data back and forth between the grid and quadTree objects.
 
 
 # Brief History
-     This repository exists in lieu of the PenroseTiler repository. The PenroseTiler repository itself comprises the scripts necessary to run a genetic algorithm used to find the set of valid functions that project from a mother lattice to an arbitrary tiling described be a series of objects. The tilings are evaluated using brute force to calculate the number of white (or untiled) pixels to evaluate the fitness of several functions.
-     The algorithm is successful in finding two trivial solutions, and one generalized solution. The two trivial solutions are capable of producing generalized crystalline tilings while the generalized solution is much more robust and can handle many more shift vector initial conditions.
-     This repository was initiated in order to provide a library of functions that act on the more robust of the functions.
+This repository exists in lieu of the PenroseTiler repository. The PenroseTiler repository itself comprises the scripts necessary to run a genetic algorithm used to find the set of valid functions that project from a mother lattice to an arbitrary tiling described be a series of objects. The tilings are evaluated using brute force to calculate the number of white (or untiled) pixels to evaluate the fitness of several functions.
+
+The algorithm is successful in finding two trivial solutions, and one generalized solution. The two trivial solutions are capable of producing generalized crystalline tilings while the generalized solution is much more robust and can handle many more shift vector initial conditions.
+
+This repository was initiated in order to provide a library of functions that act on the more robust of the functions.
 
 # Examples
-Bounded partial mapping from 4 dimmensions
+***Bounded partial mapping from 4 dimmensions***
 
 ![alt text](Examples/n4PartialMapBounded.gif "Bounded partial mapping from 4 dimensions")
 
 
-Non-outlined from 29 dimmensions 17x17 hyperplane
+***Non-outlined from 29 dimmensions 17x17 hyperplane***
 
 ![alt text](Examples/n29s8noOutlineBounded.gif "Non-outlined from 29 dimmensions 17x17 hyperplane")
 
 
-Adaptive boundary
+***Adaptive boundary***
 
 ![alt text](Examples/n29s8noOutlineBounded.gif "Adaptive boundary")
 
 
-Redundantly mapped states from 7 dimmensions
+***Redundantly mapped states from 7 dimmensions***
 
 ![alt text](Examples/redundentlyMapped.gif "Redundantly mapped states from 7 dimmensions")
 
 
-Game of life pattern that diverges
+***Game of life pattern that diverges***
 
 ![alt text](Examples/divergentGOL.gif "gol pattern that diverges")
 
 
-Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells
+***Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells***
 
 ![alt text](Examples/oscillatorSampleGOL.gif "Sample oscillators from 10 dimmensions")

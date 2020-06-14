@@ -21,9 +21,9 @@ from MultigridCell import MultigridCell
 ## This class creates objects containing the parameters of a multigrid
 ## This randomly samples from all permutations of tiles T dual to the multigrid instance
 class Multigrid:
-    def __init__(self, dim, sC, size, tileSize, shiftZeroes, shiftRandom, shiftByHalves, tileOutline, alpha, startTime=0, rootPath=None,
+    def __init__(self, dim, size, sC=0, tileSize=10, shiftProperties=(False, True, False), tileOutline=False, alpha=1, startTime=0, rootPath=None,
                 isValued=False, valIsRadByDim=False, valIsRadBySize=False, bounds=None, boundToCol=None, boundToPC=None,
-                ptIndex=None, shiftVect=None, valRatio=None, numStates=None, colors=None, gol=False):
+                ptIndex=None, shiftVect=None, valRatio=None, numStates=None, colors=None, gol=False, isBoundaried=False):
 
 
         self.numStable = 0
@@ -33,6 +33,8 @@ class Multigrid:
         self.colors = colors
 
         self.gol=gol
+
+        self.isBoundaried = isBoundaried
 
         ## Generate Multigrid object and instantiate its constant parameters
         self.startTime = startTime
@@ -45,12 +47,17 @@ class Multigrid:
         self.isValuedGrid, self.valIsRadByDim, self.valIsRadBySize = isValued, valIsRadByDim, valIsRadBySize
         self.valRatio = valRatio
         self.bounds, self.boundToCol, self.boundToPC = bounds, boundToCol, boundToPC
-        self.shiftZeroes, self.shiftRandom, self.shiftByHalves = shiftZeroes, shiftRandom, shiftByHalves
+        
         self.numStates = numStates
-        if ptIndex == 0:
-            self.shiftVect = self.genShiftVector(zeroes=shiftZeroes, random=shiftRandom, byHalves=shiftByHalves)
+
+        ## Deal with shift vector
+        self.shiftZeroes, self.shiftRandom, self.shiftByHalves = shiftProperties
+        if (not shiftVect) and (ptIndex==0):
+            self.shiftVect = self.genShiftVector(zeroes=self.shiftZeroes, random=self.shiftRandom, byHalves=self.shiftByHalves)
         else:
             self.shiftVect = shiftVect
+
+
         ## adjacencyMatrix of tile types
         self.ttm = self.genttm()
 
@@ -61,7 +68,55 @@ class Multigrid:
         self.gridPath = 'grid' + str(self.ptIndex) + '.png'
         self.pathPng = self.rootPath + self.gridPath
 
+    ## Generation Methods
+    def genZetaVect(self):
+        return [(-1)**((2/self.dim)*i) for i in range(self.dim)]
 
+    def genttm(self):
+        if self.dim%2 == 0:
+            t = int((self.dim/2)-1)
+        else:
+            t = int((self.dim-1)/2)
+        self.t = t
+        ## create tile type adjacency matrix
+        ttm = [[0 for x in range(self.dim)] for y in range(self.dim)]
+        for x in range(self.dim):
+            for y in range(1, t+1):
+                if x+y >= self.dim:
+                    ttm[x][(x+y)-self.dim] = y-1
+                else:
+                    ttm[x][x+y] = y-1
+                ttm[x][x-y] = y-1
+        return ttm
+
+    ## Conversion Methods
+    def tileParamToVertices(self, r, s, a, b):
+        ## Return a generator object of tile vertices
+        zeta = self.genZetaVect()
+        if zeta[s-r].imag == 0:
+            z = 1j*(zeta[r]*(b-self.shiftVect[s]) - zeta[s]*(a-self.shiftVect[r])) / 0.00001
+        else:
+            z = 1j*(zeta[r]*(b-self.shiftVect[s]) - zeta[s]*(a-self.shiftVect[r])) / zeta[s-r].imag
+        k = [0--((z/i).real+t)//1 for i, t in zip(zeta, self.shiftVect)]
+        for k[r], k[s] in [(a, b), (a+1, b), (a+1, b+1), (a, b+1)]:
+            yield sum(x*t for t, x in zip(zeta, k))
+    
+    def imagToReal(self, vertices):
+        ## Return 
+        for cord in vertices:
+            scaledCord = self.tileSize*cord
+            yield from (scaledCord.real, scaledCord.imag)
+
+    def valToBound(self, val):
+        if val in self.bounds:
+            return val
+        else:
+            boundCopy = self.bounds.copy()
+            boundCopy.append(val)
+            boundCopy.sort()
+            return self.bounds[boundCopy.index(val)]
+
+    ## Setter Methods
     def setValStats(self, numTiles, valAvg, valStdDev):
         self.numTiles = numTiles
         self.valAvg = valAvg
@@ -70,20 +125,174 @@ class Multigrid:
     def setFigs(self, ax):
         self.ax = ax
 
+
+    ## Larger Methods
+    def genShiftVector(self, zeroes=False, random=False, byHalves=True):
+        if zeroes:
+            shiftVect = [0.00001 for i in range(self.dim-1)]
+            shiftVect.append(self.sC)
+            return shiftVect
+        
+        if self.dim==3:
+            samplePopulation = list(range(1, 1000, 1))
+            sample = rd.sample(samplePopulation, 2)
+            samp1, samp2 = sample[0]/2, sample[1]/2
+            final = self.sC - samp1 - samp2
+            return [samp1, samp2, final]
+
+        if self.dim%2==0:
+            # If even
+            lB = math.floor((self.dim/2)-1)
+            sV = []
+            for i in range(lB):
+                sV.append((i+1)/self.dim)
+                sV.append(-(i+1)/self.dim)
+            sV.append((1/3)*self.sC)
+            sV.append((2/3)*self.sC)
+            return sV
+        elif self.dim%2!=0:
+            lB = math.floor((self.dim-1)/2)
+            uB = math.ceil((self.dim-1)/2)
+            sV = []
+            popMultiplier = 1
+            samplePopulation = list(range(1, popMultiplier*self.dim))
+            samp = rd.sample(samplePopulation, lB)
+            samp.sort()
+            for i in range(lB):
+                if byHalves:
+                    if not random:
+                        sV.append((i+1)/2)
+                        sV.append(-(i+1)/2)
+                    else:
+                        sV.append(samp[i]/2)
+                        sV.append(-samp[i]/2)
+                else:
+                    if not random:
+                        sV.append((i+1)/self.dim)
+                        sV.append(-(i+1)/self.dim)
+                    else:
+                        sV.append(samp[i]/(self.dim+5))
+                        sV.append(-samp[i]/(self.dim+5))
+
+            if lB != uB:
+                sV += [0.0]
+            sV += [self.sC]
+            return sV
+
+    ## Called once at start to generate tiling
+    def genTiling(self):
+        ## Find all tiles to be projected from the multigrid parameters
+        colorList = sns.cubehelix_palette(self.t, dark=0, light=0.8)
+        #colorList = sns.cubehelix_palette("RdBu_r", self.t, dark=0, light=0.8)
+
+        ## Create multigrid instance of cell objects
+        self.multiGrid = [[[[None for b in range(-self.size, self.size+1)] for s in range(self.dim)] for a in range(-self.size, self.size+1)] for r in range(self.dim)]
+        self.values = []
+        for r in range(self.dim):
+            for a in range(-self.size, self.size+1):
+                for s in range(r+1, self.dim):
+                    for b in range(-self.size, self.size+1):
+
+                        tileType = self.ttm[r][s]
+                        color = colorList[tileType]
+
+                        p_rs_ab = MultigridCell(self.dim, r, s, a, b, self.shiftVect[r], self.shiftVect[s], tileType)
+                        p_rs_ab.setStability(False)
+
+                        ## Initialize vertices
+                        vertices = list(self.imagToReal(self.tileParamToVertices(r, s, a, b)))
+                        vList = []
+                        it = iter(vertices)
+                        for x in it:
+                            vList.append((x, next(it)))
+                        p_rs_ab.setVertices(vList)
+                        ## Set the origin of the tiling if it exists
+                        if(r==0 and s==1 and a==0 and b==0):
+                            self.zero = [vertices[0], vertices[1]]
+
+                        ## Game Of Life
+                        if self.gol:
+                            rand=rd.randrange(0, 3)
+                            val, tileColor = 0, ''
+                            if rand==0:
+                                p_rs_ab.setColor('black')
+                                p_rs_ab.setVal(1)
+                                self.values.append(1)
+                            else:
+                                p_rs_ab.setColor('white')
+                                p_rs_ab.setVal(0)
+                                self.values.append(0)
+                        ## If the grid is not valued, value defaults to the tile type
+                        elif not self.isValuedGrid:
+                            p_rs_ab.setColor(color)
+                            p_rs_ab.setVal(tileType)
+                            self.values.append(tileType)
+                        ## Dimmensionally Valued
+                        elif self.ptIndex==0 and self.valIsRadByDim:
+                            if r==0:
+                                val=rd.randrange(0, self.bounds[r]+1)
+                            else:
+                                val=rd.randrange(self.bounds[r-1], self.bounds[r]+1)
+                            tileColor = self.boundToCol.get(self.bounds[r])
+                            p_rs_ab.setColor(tileColor)
+                            p_rs_ab.setVal(val)
+                            self.values.append(val)
+                        ## Radially Valued
+                        elif self.ptIndex==0 and self.valIsRadBySize:
+                            if abs(a)==0:
+                                val=rd.randrange(self.bounds[abs(a)], self.bounds[abs(a)+1]+1)
+                            else:
+                                val=rd.randrange(self.bounds[abs(a)-1], self.bounds[abs(a)]+1)
+                            tileColor = self.boundToCol.get(self.bounds[abs(a)])
+                            p_rs_ab.setColor(tileColor)
+                            p_rs_ab.setVal(val)
+                            self.values.append(val)
+                        ## Randomly Valued
+                        elif self.ptIndex==0 and self.isValuedGrid:
+                            val = rd.randrange(1, self.numStates+1)
+                            tileColor = ''
+                            if val in self.bounds:
+                                tileColor = self.boundToCol.get(val)
+                            else:
+                                tileColor = self.boundToCol.get(self.valToBound(val))
+                            if (abs(a) == self.size) or (abs(b) == self.size):
+                                val = -1
+                                tileColor = 'red'
+                            p_rs_ab.setColor(tileColor)
+                            p_rs_ab.setVal(val)
+                            self.values.append(val)
+
+                        ## Color Background
+                        if abs(a)==self.size or abs(b)==self.size:
+                            color = "red"
+                        ## Color End 
+                        if abs(a)==self.size and abs(b)==self.size:
+                            color = "purple"
+                        ## Why do I need to do this?
+                        self.multiGrid[r][a][s][b] = p_rs_ab
+        self.numTiles = len(self.values)
+        self.gridValAvg = sum(self.values)/self.numTiles
+        valStdDev = 0
+        for value in self.values:
+            valStdDev += (value-self.gridValAvg)**2
+        self.valStdDev = math.sqrt(valStdDev/self.numTiles)
+
     def genNextValuedGridState(self, animating=False, boundaried=False):
-        nextGrid = Multigrid(self.dim, self.sC, self.size, self.tileSize, self.shiftZeroes, self.shiftRandom, self.shiftByHalves, self.tileOutline, self.alpha,
+        shiftProperties=(self.shiftZeroes, self.shiftRandom, self.shiftByHalves)
+        nextGrid = Multigrid(self.dim, self.size, sC=self.sC, tileSize=self.tileSize, shiftProperties=shiftProperties, tileOutline=self.tileOutline, alpha=self.alpha,
                             rootPath=self.rootPath, bounds=self.bounds, boundToCol=self.boundToCol, boundToPC=self.boundToPC,
                             isValued=True, valIsRadByDim=self.valIsRadByDim, valIsRadBySize=self.valIsRadBySize,
-                            ptIndex=self.ptIndex+1, shiftVect=self.shiftVect, valRatio=self.valRatio, numStates=self.numStates, colors=self.colors, gol=self.gol)
+                            ptIndex=self.ptIndex+1, shiftVect=self.shiftVect, valRatio=self.valRatio, numStates=self.numStates, colors=self.colors,
+                            gol=self.gol, isBoundaried=self.isBoundaried)
         if animating:
             nextGrid.setFigs(self.ax)
-        nextGrid.multiGrid = self.multiGrid
-        nextGrid.zero = self.zero
+        nextGrid.multiGrid, nextGrid.zero = self.multiGrid, self.zero
         nextGrid.values, nextGrid.numTiles, nextGrid.gridValAvg, nextGrid.valStdDev = self.values, self.numTiles, self.gridValAvg, self.valStdDev
 
         values = []
         self.stableTiles = []
-        if self.ptIndex == 0 or self.gol:
+        ## Clasically iterate over each tile in grid
+        if self.ptIndex == 0 or (not self.isBoundaried) or self.gol:
             for r in range(self.dim):
                 ## We do not want to check the outermost layer as they are non playable
                 for a in range(-self.size, self.size+1):
@@ -101,6 +310,7 @@ class Multigrid:
                             else:
                                 self.updateTileVals(t1, t2)
                             values.append(t1.val)
+        ## Iterate over the unstable tiles
         else:
             prevUnstableTiles = self.unstableTiles
             self.unstableTiles = []
@@ -113,13 +323,12 @@ class Multigrid:
                     continue
                 self.updateTileVals(t1, t2)
                 values.append(t1.val)
-        if not self.gol:
-            self.addToStablePatch(self.stableTiles)
         self.numTiles = len(values)
         self.valAvg = sum(values)/self.numTiles
         self.valStdDev = math.sqrt(sum([(val-self.valAvg)**2 for val in values])/self.numTiles)
         if not self.gol:
             nextGrid.unstableTiles = self.unstableTiles
+            self.addToStablePatch(self.stableTiles)
         nextGrid.stablePatches = self.stablePatches
         if boundaried:
             nextGrid.genBoundaryList()
@@ -131,8 +340,6 @@ class Multigrid:
             return nextGrid, self.ax
         return nextGrid
 
-
-
     def genBoundaryList(self):
         ## A list that contains lists where each contained list contains a collection of unstable tile indexes representing the boundaries on an object
         listOfBoundaryLists = []
@@ -141,13 +348,13 @@ class Multigrid:
 
         for tInd in self.unstableTiles:
             t = self.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
-            tBound = self.getBound(t.val)
+            tBound = self.valToBound(t.val)
 
             ## First we create a list of neighbours that are in the same state
             boundedNeighbours = []
             for neighbour in t.neighbourhood:
                 n = self.multiGrid[neighbour[0]][neighbour[1]][neighbour[2]][neighbour[3]]
-                if (self.getBound(n.val) == tBound) and (not n.isStable):
+                if (self.valToBound(n.val) == tBound) and (not n.isStable):
                     boundedNeighbours.append(tuple(neighbour))
                         
             ## If there are no neighbours of this state, we create a new boundary object
@@ -203,12 +410,12 @@ class Multigrid:
             return
 
         t1neighbourValAvg = t1neighbourValTotal/len(t1.neighbourhood)
-        bound = self.getBound(t1neighbourValAvg)
+        bound = self.valToBound(t1neighbourValAvg)
         pc = self.boundToPC.get(bound)
         # This makes it the merge method
         t2Val = t1.val + (t1neighbourValAvg - t1.val)*pc
         #t2Val = self.valRatio*t1.val + (1-self.valRatio)*t1neighbourValAvg
-        t2Color = self.boundToCol.get(self.getBound(t2Val))
+        t2Color = self.boundToCol.get(self.valToBound(t2Val))
         t2.setVal(t2Val)
         t2.setColor(t2Color)
 
@@ -236,216 +443,7 @@ class Multigrid:
         else:
             t2.setVal(0)
             t2.setColor('white')
-
-
-    def getBound(self, val):
-        if val in self.bounds:
-            return val
-        else:
-            boundCopy = self.bounds.copy()
-            boundCopy.append(val)
-            boundCopy.sort()
-            return self.bounds[boundCopy.index(val)]
-
-    def genZetaVect(self):
-        return [(-1)**((2/self.dim)*i) for i in range(self.dim)]
-
-    def genShiftVector(self, zeroes=False, random=False, byHalves=True):
-        if zeroes:
-            shiftVect = [0.00001 for i in range(self.dim-1)]
-            shiftVect.append(self.sC)
-            return shiftVect
         
-        if self.dim==3:
-            samplePopulation = list(range(1, 1000, 1))
-            sample = rd.sample(samplePopulation, 2)
-            samp1, samp2 = sample[0]/2, sample[1]/2
-            final = self.sC - samp1 - samp2
-            return [samp1, samp2, final]
-
-        if self.dim%2==0:
-            # If even
-            lB = math.floor((self.dim/2)-1)
-            sV = []
-            for i in range(lB):
-                sV.append((i+1)/self.dim)
-                sV.append(-(i+1)/self.dim)
-            sV.append((1/3)*self.sC)
-            sV.append((2/3)*self.sC)
-            return sV
-        elif self.dim%2!=0:
-            lB = math.floor((self.dim-1)/2)
-            uB = math.ceil((self.dim-1)/2)
-            sV = []
-            popMultiplier = 1
-            samplePopulation = list(range(1, popMultiplier*self.dim))
-            samp = rd.sample(samplePopulation, lB)
-            samp.sort()
-            for i in range(lB):
-                if byHalves:
-                    if not random:
-                        sV.append((i+1)/2)
-                        sV.append(-(i+1)/2)
-                    else:
-                        sV.append(samp[i]/2)
-                        sV.append(-samp[i]/2)
-                else:
-                    if not random:
-                        sV.append((i+1)/self.dim)
-                        sV.append(-(i+1)/self.dim)
-                    else:
-                        sV.append(samp[i]/(self.dim+5))
-                        sV.append(-samp[i]/(self.dim+5))
-
-            if lB != uB:
-                sV += [0.0]
-            sV += [self.sC]
-            return sV
-
-    def genttm(self):
-        if self.dim%2 == 0:
-            t = int((self.dim/2)-1)
-        else:
-            t = int((self.dim-1)/2)
-        self.t = t
-        ## create tile type adjacency matrix
-        ttm = [[0 for x in range(self.dim)] for y in range(self.dim)]
-        for x in range(self.dim):
-            for y in range(1, t+1):
-                if x+y >= self.dim:
-                    ttm[x][(x+y)-self.dim] = y-1
-                else:
-                    ttm[x][x+y] = y-1
-                ttm[x][x-y] = y-1
-        return ttm
-
-    def tileParamToVertices(self, r, s, a, b):
-        ## Return a generator object of tile vertices
-        zeta = self.genZetaVect()
-        if zeta[s-r].imag == 0:
-            z = 1j*(zeta[r]*(b-self.shiftVect[s]) - zeta[s]*(a-self.shiftVect[r])) / 0.0001
-        else:
-            z = 1j*(zeta[r]*(b-self.shiftVect[s]) - zeta[s]*(a-self.shiftVect[r])) / zeta[s-r].imag
-        k = [0--((z/t).real+p)//1 for t, p in zip(zeta, self.shiftVect)]
-        for k[r], k[s] in [(a, b), (a+1, b), (a+1, b+1), (a, b+1)]:
-            yield sum(x*t for t, x in zip(zeta, k))
-
-    ## Called once at start to generate tiling
-    def tiling(self):
-        ## Find all tiles to be projected from the multigrid parameters
-        colorList = sns.cubehelix_palette(self.t, dark=0, light=0.8)
-        #colorList = sns.cubehelix_palette("RdBu_r", self.t, dark=0, light=0.8)
-
-        ## Create multigrid instance of cell objects
-        p = None
-        self.multiGrid = [[[[p for b in range(-self.size, self.size+1)] for s in range(self.dim)] for a in range(-self.size, self.size+1)] for r in range(self.dim)]
-        self.values = []
-        for r in range(self.dim):
-            for a in range(-self.size, self.size+1):
-                for s in range(r+1, self.dim):
-                    for b in range(-self.size, self.size+1):
-
-                        tileType = self.ttm[r][s]
-                        color = colorList[tileType]
-
-                        p_rs_ab = MultigridCell(self.dim, r, s, a, b, self.shiftVect[r], self.shiftVect[s], tileType)
-                        p_rs_ab.setStability(False)
-                        if not self.isValuedGrid:
-                            p_rs_ab.setColor(color)
-                            p_rs_ab.setVal(tileType)
-                            self.values.append(tileType)
-                        if self.gol:
-                            rand=rd.randrange(0, 3)
-                            val, tileColor = 0, ''
-                            if rand==0:
-                                p_rs_ab.setColor('black')
-                                p_rs_ab.setVal(1)
-                                self.values.append(1)
-                            else:
-                                p_rs_ab.setColor('white')
-                                p_rs_ab.setVal(0)
-                                self.values.append(0)
-                        ## Create first radially valued by dimmension grid
-                        elif self.ptIndex==0 and self.valIsRadByDim:
-                            if r==0:
-                                val=rd.randrange(0, self.bounds[r]+1)
-                            else:
-                                val=rd.randrange(self.bounds[r-1], self.bounds[r]+1)
-                            tileColor = self.boundToCol.get(self.bounds[r])
-                            p_rs_ab.setColor(tileColor)
-                            p_rs_ab.setVal(val)
-                            self.values.append(val)
-                        ## Create first radially valued by size grid
-                        elif self.ptIndex==0 and self.valIsRadBySize:
-                            if abs(a)==0:
-                                val=rd.randrange(self.bounds[abs(a)], self.bounds[abs(a)+1]+1)
-                            else:
-                                val=rd.randrange(self.bounds[abs(a)-1], self.bounds[abs(a)]+1)
-                            tileColor = self.boundToCol.get(self.bounds[abs(a)])
-                            p_rs_ab.setColor(tileColor)
-                            p_rs_ab.setVal(val)
-                            self.values.append(val)
-                        ## Create first randomly valued grid
-                        elif self.ptIndex==0 and self.isValuedGrid:
-                            val = rd.randrange(1, self.numStates+1)
-                            tileColor = ''
-                            if val in self.bounds:
-                                tileColor = self.boundToCol.get(val)
-                            else:
-                                tileColor = self.boundToCol.get(self.valToBound(val))
-                            if (abs(a) == self.size) or (abs(b) == self.size):
-                                val = -1
-                                tileColor = 'red'
-                            p_rs_ab.setColor(tileColor)
-                            p_rs_ab.setVal(val)
-                            self.values.append(val)
-                        # Might not be necessary
-                        elif self.isValuedGrid:
-                            val = rd.randrange(0, self.numStates+1)
-                            tileColor = self.boundToCol.get(self.valToBound(val))
-                            p_rs_ab.setColor(tileColor)
-                            p_rs_ab.setVal(val)
-                            self.values.append(val)
-                        ## Color end 
-                        elif abs(a)==self.size and abs(b)==self.size:
-                            color = "purple"
-
-                        rhombus, rhombCopy = itertools.tee(self.tileParamToVertices(r, s, a, b))
-                        vertices = list(self.imagToReal(rhombCopy))
-                        ## Set the origin of the tiling if it exists
-                        if(r==0 and s==1 and a==0 and b==0):
-                            self.zero = [vertices[0], vertices[1]]
-                        vList = []
-                        it = iter(vertices)
-                        for x in it:
-                            vList.append((x, next(it)))
-                        p_rs_ab.setVertices(vList)
-                        self.multiGrid[r][a][s][b] = p_rs_ab
-                        yield rhombus, color
-        self.numTiles = len(self.values)
-        self.gridValAvg = sum(self.values)/self.numTiles
-        valStdDev = 0
-        for value in self.values:
-            valStdDev += (value-self.gridValAvg)**2
-        self.valStdDev = math.sqrt(valStdDev/self.numTiles)
-
-    def imagToReal(self, vertices):
-        ## Return 
-        for cord in vertices:
-            scaledCord = self.tileSize*cord
-            yield from (scaledCord.real, scaledCord.imag)
-
-    def valToBound(self, val):
-        boundCopy = self.bounds.copy()
-        boundCopy.append(val)
-        boundCopy.sort()
-        return self.bounds[boundCopy.index(val)]
-
-    def makeTiling(self):
-        for _ in self.tiling():
-            pass
-
-
     def displayTiling(self, printImage=False):
         # Does this have to be its own method?
         # Think about using average from previous generation
@@ -500,7 +498,8 @@ class Multigrid:
         else:
             shifts = [str(round(i,1)) for i in self.shiftVect]
             self.ax.set_title("n=" + str(self.dim) +  ", size=" + str(self.size) + ", shiftConstant=" + str(self.sC) + ",  shiftVect~[" + shifts[0] + ", ..., " + shifts[self.dim-1]  + "]")
-        
+        if self.ptIndex == 0:
+            return self.ax
 
     def displayBoundaries(self):
         #for stablePatch in self.stablePatches:
@@ -550,7 +549,7 @@ class Multigrid:
             self.stablePatches.append(patch)
             
 
-## For each tile, we give it a set of indices {[t.r, t.a, t.s, t.b],...} that can be used to iterate over
+    ## For each tile, we give it a set of indices {[t.r, t.a, t.s, t.b],...} that can be used to iterate over
     ## to check the tile's local neighbourhood's values
     def genTileNeighbourhoods(self):
         ## We wish to make a dictionary w/ the keys containing all the vertices in Gngamma, where
@@ -575,7 +574,6 @@ class Multigrid:
                                 indexAsStr = "{} {} {} {}".format(t.r, t.a, t.s, t.b)
                                 neighbourhoodSet.add(indexAsStr)
                                 vertexToTileSet.update({vertex : neighbourhoodSet})
-
         setOfNeighbourhoodSets = vertexToTileSet.values()
         listOfNeighbourhoodLists = []
         for neighbourhoodSet in setOfNeighbourhoodSets:
@@ -585,15 +583,12 @@ class Multigrid:
                 tileIndices = [int(i) for i in tileIndices.split(' ')]
                 neighbourhoodList.append(tileIndices)
             listOfNeighbourhoodLists.append(neighbourhoodList)
-
         ## For each neighbourhood list in list of neighbourhood lists
         visited = set()
         for neighbourhoodList in listOfNeighbourhoodLists:
             neighbourhoodListCopy = neighbourhoodList[:]
-
             ## For each tile index in this neighbourhood
             for tileIndex in neighbourhoodList:
-
                 tile = self.multiGrid[tileIndex[0]][tileIndex[1]][tileIndex[2]][tileIndex[3]]
                 if tuple(tileIndex) in visited:
                     tnh = tile.neighbourhood
@@ -621,7 +616,6 @@ class Multigrid:
         codes, verts = zip(*path_data)
         return mpath.Path(verts, codes)
 
-        
     def saveFig(self):
         if not os.path.isdir(self.rootPath):
             os.makedirs(self.rootPath)
@@ -640,7 +634,7 @@ def main():
     alpha = 1
     shiftZeroes, shiftRandom, shiftByHalves = True, False, False
     multi = Multigrid(dim, sC, size, tileSize, shiftZeroes, shiftRandom, shiftByHalves, tileOutline, alpha, start)
-    multi.makeTiling()
+    multi.genTiling()
     multi.genTileNeighbourhoods()
     multi.displayTiling(printImage=True)
     

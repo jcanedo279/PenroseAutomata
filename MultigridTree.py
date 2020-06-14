@@ -16,24 +16,21 @@ import plotly.figure_factory as ff
 from Multigrid import Multigrid
 
 class MultigridTree:
-    def __init__(self, dim, sC, size, tileSize, shiftZeroes, shiftRandom, shiftByHalves, tileOutline, alpha, c, maxGen,
-                 isValued=True, valIsRadByDim=False, valIsRadBySize=False, valRatio=None, numStates=None, gol=False, overide=False):
+    def __init__(self, dim, sC, size, tileSize, shiftProperties, tileOutline, alpha, c, maxGen,
+                 isValued=True, valIsRadByDim=False, valIsRadBySize=False, valRatio=None, numStates=None,
+                 gol=False, overide=False, isBoundaried=False, shiftVect=None):
 
+        self.isBoundaried = isBoundaried
         self.stability = []
         self.numBoundaries = []
-        self.isBoundaried = True
-
-        self.gol = gol
-
-        self.overide = overide
-
         self.prevPercentStable = 1
         self.percentStableRepeatCount = 0
 
         self.startTime = time.time()
         self.dim, self.sC, self.size = dim, sC, size
         self.tileSize = tileSize
-        self.shiftZeroes, self.shiftRandom, self.shiftByHalves = shiftZeroes, shiftRandom, shiftByHalves
+        self.shiftZeroes, self.shiftRandom, self.shiftByHalves = shiftProperties
+        self.shiftVect=shiftVect
         self.tileOutline, self.alpha = tileOutline, alpha
 
         self.isValued = isValued
@@ -42,6 +39,11 @@ class MultigridTree:
         self.numColors = c
         self.maxGen = maxGen
         self.numStates = numStates
+
+        self.overide = overide
+        self.setOriginal = True
+
+        self.gol = gol
 
         #self.colors = sns.cubehelix_palette(self.numColors, dark=0.1, light=0.9)
         self.colors = sns.color_palette("bright", self.numColors)
@@ -67,11 +69,12 @@ class MultigridTree:
 
         self.ptIndex = 0
 
-        origGrid = Multigrid(self.dim, self.sC, self.size, self.tileSize, self.shiftZeroes, self.shiftRandom,
-                            self.shiftByHalves, self.tileOutline, self.alpha, rootPath=self.localTrashPath,
+        origGrid = Multigrid(self.dim, self.size, sC=self.sC, tileSize=self.tileSize, shiftProperties=shiftProperties,
+                            tileOutline=self.tileOutline, alpha=self.alpha, rootPath=self.localTrashPath,
                             isValued=self.isValued, valIsRadByDim=valIsRadByDim, valIsRadBySize=valIsRadBySize,
                             bounds=self.bounds, boundToCol=self.boundToCol, boundToPC=self.boundToPC,
-                            ptIndex=self.ptIndex, valRatio=self.valRatio, numStates=self.numStates, colors=self.colors, gol=self.gol)
+                            ptIndex=self.ptIndex, valRatio=self.valRatio, numStates=self.numStates, colors=self.colors,
+                            gol=self.gol, isBoundaried=isBoundaried, shiftVect=self.shiftVect)
         self.animating = True
         self.continueAnimation = True
         if self.animating:
@@ -81,12 +84,11 @@ class MultigridTree:
             origGrid.setFigs(self.ax)
         #self.ptIndex += 1
 
-        origGrid.makeTiling()
+        origGrid.genTiling()
         print('Original tile generated')
         origGrid.genTileNeighbourhoods()
         print('Tile neighbourhood generated')
-        origGrid.displayTiling()
-        self.origAx = origGrid.ax
+        self.origAx = origGrid.displayTiling()
         
 
         if self.animating:
@@ -133,6 +135,11 @@ class MultigridTree:
         #    self.multigridTree[self.ptIndex-2].ax.cla()
 
     def updateAnimation(self, i):
+        if self.setOriginal:
+            self.setOriginal=False
+            return self.origAx
+        if self.ptIndex==0:
+            del self.origAx
         origGrid = self.currentGrid
         origGrid.ax.cla()
         nextGrid, axis = origGrid.genNextValuedGridState(animating=True, boundaried=self.isBoundaried)
@@ -141,21 +148,15 @@ class MultigridTree:
             self.numBoundaries.append(nextGrid.numBoundaries)
             if self.ptIndex==1:
                 self.origNumBoundaries = nextGrid.numBoundaries
-        if self.ptIndex > 1:
+        if self.isBoundaried and (self.ptIndex > 1):
             if nextGrid.numBoundaries/self.origNumBoundaries == self.prevPercentStable:
                 self.percentStableRepeatCount += 1
             else:
                 self.percentStableRepeatCount = 0
             self.prevPercentStable = nextGrid.numBoundaries/self.origNumBoundaries
             #print(nextGrid.numBoundaries/self.origNumBoundaries, origGrid.numBoundaries, self.percentStableRepeatCount)
-        if (not self.gol) and (not self.overide) and (self.ptIndex > 1) and ((nextGrid.numBoundaries/self.origNumBoundaries < 0.5) or (self.percentStableRepeatCount > 1)):
+        if self.isBoundaried and (not self.gol) and (not self.overide) and (self.ptIndex > 1) and ((nextGrid.numBoundaries/self.origNumBoundaries < 0.5) or (self.percentStableRepeatCount > 1)):
             self.continueAnimation = False
-
-
-    
-        if (self.ptIndex > 1) and (self.percentStableRepeatCount > 1) and (not self.gol):
-            self.continueAnimation = False
-
 
         if self.dim < 7:
             shiftVectStr = ', '.join(str(round(i,1)) for i in origGrid.shiftVect)
@@ -187,21 +188,30 @@ class MultigridTree:
             currentPop = self.genNextGrid(currentPop)
 
     def genBounds(self):
-        samplePop = range(1, self.numStates)
-        sample = rd.sample(samplePop, self.numColors-1)
-        sample.append(self.numStates)
-        self.bounds = sorted(sample)
-        self.boundToCol = {}
-        self.boundToKeyCol = {}
-        self.boundToPC = {}
         sampleDef = 1000
-        for i, bound in enumerate(self.bounds):
-            self.boundToCol[bound] = self.colors[i]
-            self.boundToPC[bound] = rd.randrange(0, sampleDef+1)/sampleDef
-            if rd.randrange(0, 2) == 0:
-                self.boundToKeyCol[bound] = self.colors[i]
-            else:
-                self.boundToKeyCol[bound] = self.colors[rd.randrange(0, len(self.colors))]
+        if self.numStates==0:
+            print('INVALID NUMBER OF STATES')
+        elif self.numStates==1:
+            self.bounds = [self.numStates]
+            self.boundToCol, self.boundToKeyCol, self.boundToPC = {}, {}, {}
+            self.boundToCol[0] = self.colors[0]
+            self.boundToKeyCol = self.boundToCol
+            self.boundToPC[0] = rd.randrange(0, sampleDef+1)/sampleDef
+        else:
+            samplePop = range(1, self.numStates)
+            sample = rd.sample(samplePop, self.numColors-1)
+            sample.append(self.numStates)
+            self.bounds = sorted(sample)
+            self.boundToCol = {}
+            self.boundToKeyCol = {}
+            self.boundToPC = {}
+            for i, bound in enumerate(self.bounds):
+                self.boundToCol[bound] = self.colors[i]
+                self.boundToPC[bound] = rd.randrange(0, sampleDef+1)/sampleDef
+                if rd.randrange(0, 2) == 0:
+                    self.boundToKeyCol[bound] = self.colors[i]
+                else:
+                    self.boundToKeyCol[bound] = self.colors[rd.randrange(0, len(self.colors))]
 
 
 
@@ -217,41 +227,53 @@ def main():
 
     numIterations = 1
     for _ in range(numIterations):
-        dim = 12
-        sC = 0
-        size = 10
-        tileOutline = False
+        dim = 20
+        sC = 1/2
+        size = 2
+        tileOutline = True
         alpha = 1
-        shiftZeroes, shiftRandom, shiftByHalves = False, True, False
-        isRadByDim, isRadBySize = False, False
-        numColors = 10000
-        numStates = 100000
-        if isRadByDim:
-            numColors = dim
-        elif isRadBySize:
-            numColors = size+1
-        tileSize = 10
-        minGen = 100
-        maxGen = 100
+        shiftZeroes, shiftRandom, shiftByHalves = True, False, False
+        shiftProperties = (shiftZeroes, shiftRandom, shiftByHalves)
+        ## For extreme tilings:
+        #    If dim>>size -> isRadByDim=True
+        #    If size>>dim -> isRadBySize=True
+        isRadByDim, isRadBySize = True, False
+
+        numColors = 1000
+        numStates = 10000
+        minGen = 5
+        maxGen = 5
+
+        shiftVect=None
+
+        isBoundaried = False
 
         gol=False
 
         overide=False
 
-        tree = MultigridTree(dim, sC, size, tileSize, shiftZeroes, shiftRandom, shiftByHalves, tileOutline, alpha, numColors, maxGen,
-                             isValued=True, valIsRadByDim=isRadByDim, valIsRadBySize=isRadBySize, numStates=numStates, gol=gol, overide=overide)
 
+        if isRadByDim:
+            numColors = dim
+        elif isRadBySize:
+            numColors = size+1
+        tileSize = 10
+        tree = MultigridTree(dim, sC, size, tileSize, shiftProperties, tileOutline, alpha, numColors, maxGen,
+                             isValued=True, valIsRadByDim=isRadByDim, valIsRadBySize=isRadBySize, numStates=numStates,
+                             gol=gol, overide=overide, isBoundaried=isBoundaried, shiftVect=shiftVect)
+        
+        ## Save the distributions of stable tiles
         group_labels_stdDev = ['percentage of stable tiles'] # name of the dataset
         hist_data_stdDev = [tree.stability]
         stdDevFig = ff.create_distplot(hist_data_stdDev, group_labels_stdDev, show_hist=False)
         stdDevFig.write_image(tree.stabilityTrashPath)
-
+        ## Save the boundaries
         if tree.isBoundaried:
             group_labels_nmBnds = ['number of boundries']
             hist_data_nmBnds = [tree.numBoundaries]
             numBoundriesFig = ff.create_distplot(hist_data_nmBnds, group_labels_nmBnds, show_hist=False)
             numBoundriesFig.write_image(tree.numBoundariesTrashPath)
-
+        ## Save fit tilings
         if tree.ptIndex > minGen:
             files = glob.glob(tree.localTrashPath)
             for f in files:

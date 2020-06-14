@@ -624,11 +624,11 @@ class Multigrid:
 
 
 def main():
-    # dim up to 401 works for size = 2
+    # dim up to 501 works for size = 1
     start = timeit.timeit()
     dim = 13
     sC = 0
-    size = 2
+    size = 5
     tileSize = 10
     tileOutline = False
     alpha = 1
@@ -637,7 +637,6 @@ def main():
     multi.genTiling()
     multi.genTileNeighbourhoods()
     multi.displayTiling(printImage=True)
-    
 
 if __name__ == '__main__':
     main()

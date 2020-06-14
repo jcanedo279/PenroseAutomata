@@ -96,6 +96,7 @@ in these systems tend towards potential wells whose boundaries are defined by th
 **Combining deep potential wells and redundant mapping:**
 In contrast to the more crystalline state evolution of deep potential well algorithms, redundantly mapped algorithms on potential wells form amorphous patterns
 similar to those of redundant mapping algs but more crystalline.
+
 ![deepWellMultiMap1.gif](Examples/deepWellMultiMap1.gif "deep well multiMap 1")
 
 ![deepWellMultiMap2.gif](Examples/deepWellMultiMap2.gif "deep well multiMap 2")

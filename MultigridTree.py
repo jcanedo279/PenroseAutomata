@@ -229,7 +229,7 @@ def main():
     for _ in range(numIterations):
         dim = 20
         sC = 1/2
-        size = 2
+        size = 3
         tileOutline = True
         alpha = 1
         shiftZeroes, shiftRandom, shiftByHalves = True, False, False
@@ -237,12 +237,12 @@ def main():
         ## For extreme tilings:
         #    If dim>>size -> isRadByDim=True
         #    If size>>dim -> isRadBySize=True
-        isRadByDim, isRadBySize = True, False
+        isRadByDim, isRadBySize = False, False
 
         numColors = 1000
         numStates = 10000
-        minGen = 5
-        maxGen = 5
+        minGen = 40
+        maxGen = 40
 
         shiftVect=None
 

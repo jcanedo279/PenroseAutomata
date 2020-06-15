@@ -1,18 +1,18 @@
 # PenroseAutomata
      A series of algorithms to automate the PT calculated in the PenroseTiler repository
 The PenroseAutomata repository comprises fours parts:
-- The main python scripts (MultigridTree, Multigrid, MultigridCell)
+- The main python scripts (MultigridList, Multigrid, MultigridCell)
 - The supplementary scripts (QuadTree)
-- 2 folders used for caching data ('TrashTrees', 'MultigridTreeData')
+- 2 folders used for caching data ('TrashLists', 'MultigridListData')
 - Misc. files (README.md, _pycache_)
 
 # If Here For Pretty Pictures
 If you are here for the prety pictures and gifs, please go towards the bottom and skip the cs/math
 
 # How To Run
-To familiarize yourself with how these scripts work, run MultigridTree.py locally via its main() method. Notice that this will create a folder in 'TrashTrees' or 'MultigridTreeData' containing a gif of a cellular autonoma and two graphs.
-If the tiling automata survives to maxGen generations, the tiling folder will be palced in 'MultigridTreeData', otherwise it will be placed in 'TrashTrees'.
-Everytime you run the multigridTree file, it will clear 'TrashTrees' for you, therefore move the files you like to 'MultigridTreeData'
+To familiarize yourself with how these scripts work, run MultigridList.py locally via its main() method. Notice that this will create a folder in 'TrashLists' or 'MultigridListData' containing a gif of a cellular autonoma and two graphs.
+If the tiling automata survives to maxGen generations, the tiling folder will be palced in 'MultigridListData', otherwise it will be placed in 'TrashLists'.
+Everytime you run the multigridList file, it will clear 'TrashLists' for you, therefore move the files you like to 'MultigridListData'
 
 The Dimmension of the tiling is given by dim, and the size is given by size. Notice the tiling has (dim choose 2)*(2*size+1)^2 tiles.
 sC of 0 makes a true penrose tiling, while 1/2 makes a generalized tiling.
@@ -22,7 +22,7 @@ isRadByDim, isRadBySize set streaked and radial initial conditions for the tilin
 numColors is the number of boundaries in the tiling, numStates is the number of total states. Notice that numStates >= numColors
 gol is a boolean, setting it to True sets and updates tile values in binary as the game of life does, this can be specified in Multigrid.updateTileValsGOL()
 
-Running these algorithms will generally involve creating MultigridTree objects with different parameters. Feel free to tweak the files to your whims, currently the constructor will generate a gif saved to one of the local sub-directories. Creating a QuadTree object specifically involves creating a 4 dimensional MultigridTree object and transferring its data back and forth between the grid and quadTree objects.
+Running these algorithms will generally involve creating MultigridList objects with different parameters. Feel free to tweak the files to your whims, currently the constructor will generate a gif saved to one of the local sub-directories. Creating a QuadTree object specifically involves creating a 4 dimensional MultigridList object and transferring its data back and forth between the grid and quadTree objects.
 
 # Brief History
 This repository exists in lieu of the PenroseTiler repository. The PenroseTiler repository itself comprises the scripts necessary to run a genetic algorithm used to find the set of valid functions that project from a mother lattice to an arbitrary tiling described be a series of objects. The tilings are evaluated using brute force to calculate the number of white (or untiled) pixels to evaluate the fitness of several functions in tiling a plane given a lattice.

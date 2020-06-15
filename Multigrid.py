@@ -1,23 +1,24 @@
+## System
 import os
-import random
+import timeit
+## Operations
 import math
 import itertools
 import copy
+## Random
 import random as rd
-
+## Matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
 import matplotlib.patches as mpatches
-
+## Seaborn
 import seaborn as sns
 
-import timeit
-
-
-
+## Multigrid Cell Import
 from MultigridCell import MultigridCell
 
 
+## Multigrid Class
 class Multigrid:
     #################
     ## Init Method ##

@@ -1,20 +1,29 @@
-import os
-import shutil
-import glob
-import math
+## System
 import time
+import os
+import glob
+import shutil
+## Operations
+import math
 import datetime
-import seaborn as sns
+## Random
 import random as rd
+## Numpy
 import numpy as np
+## Matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import PillowWriter
+## Seaborn
+import seaborn as sns
+## Plotly Figure Factory
 import plotly.figure_factory as ff
 
-
+## Multigrid Import
 from Multigrid import Multigrid
 
+
+## MultigridList Class
 class MultigridList:
     ##################
     ## Init Methods ##

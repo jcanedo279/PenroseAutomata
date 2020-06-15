@@ -28,7 +28,6 @@ class MultigridCell:
 
         self.tileType = tileType
 
-
     def setVertices(self, vertices):
         self.vertices = vertices
 
@@ -53,32 +52,30 @@ class MultigridCell:
         return hyperplaneEqn
 
     def getPointCord(self, r, s, a, b):
-        sNormVect = self.getNormVector(self.s)
-        rNormVect = self.getNormVector(self.r)
-
+        sNormVect = self.genNormVector(self.s)
+        rNormVect = self.genNormVector(self.r)
 
         x_num = a*sNormVect[1] - b*rNormVect[1]
         x_num+= 0.5*sNormVect[1] - 0.5*rNormVect[1]
         x_num+= self.g_s*rNormVect[1] - self.g_r*sNormVect[1]
         x_den = rNormVect[0]*sNormVect[1] - sNormVect[0]*rNormVect[1]
-        if x_den==0:
-            x_rs = x_num/0.00001
-        else:
-            x_rs = x_num / x_den
-		
         y_num = a*sNormVect[0] - b*rNormVect[0]
         y_num+= 0.5*sNormVect[0] - 0.5*rNormVect[0]
         y_num+= self.g_s*rNormVect[0] - self.g_r*sNormVect[0]
         y_den = rNormVect[1]*sNormVect[0] - sNormVect[1]*rNormVect[0]
+
+        if x_den==0:
+            x_rs = x_num/0.00001
+        else:
+            x_rs = x_num / x_den
         if y_den==0:
             y_rs = x_num/0.00001
         else:
             y_rs = y_num / y_den
-		
-        p_rs = (x_rs, y_rs)
-        return p_rs
 
-    def getNormVector(self, i):
+        return (x_rs, y_rs)
+
+    def genNormVector(self, i):
         normVectorConstant = 2*(math.pi)*(i/self.dim)
         e_x = math.cos(normVectorConstant)
         e_y = math.sin(normVectorConstant)

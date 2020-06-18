@@ -100,6 +100,8 @@ fluctuation at the backgroud (which sets a potential reference to the tiling). A
 In certain even dimmensions (8, 10, 12), deep potential wells form where the geometric/topological frustration of the vertices on the plane force
 tiling patterns to become localized almost forming emmergent patterns/units. Here certain geometric properties of the tilings make it so that information
 in these systems tend towards potential wells whose boundaries are defined by the emergent patterns.
+
+Pay no attention to the slight white space here, this is the fault of a non-perfect sV generation algorithm that was used to generate these, and has since been changed.
 ![deepWells1.gif](Examples/deepWells1.gif "deep well 1")
 ![deepWells2.gif](Examples/deepWells2.gif "deep well 2")
 
@@ -117,11 +119,11 @@ Here the function is the boundary color of the mean value of the previous grid s
 
 **Game of life pattern that diverges:**
 In a gol algorithm in which a high neighbour count seeds an on state, we get a divergent system.
-Here we are on if nCount is greater than 4 and smaller than 7
+Here we are on if nCount is greater than 4 and smaller than 7.
 
 ![divergentGOL.gif](Examples/divergentGOL.gif "gol pattern that diverges")
 
 **Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells:**
-If we shift the acceptance bounds down by one we get a quickly convergent algorithm, where we are left with some sample 10d pt gol oscillators
-Here we are on if nCount is greater than 3 and smaller than 6
+If we shift the acceptance bounds down by one we get a quickly convergent algorithm, where we are left with some sample 10d pt gol oscillators.
+Here we are on if nCount is greater than 3 and smaller than 6.
 ![oscillatorSampleGOL.gif](Examples/oscillatorSampleGOL.gif "Sample oscillators from 10 dimmensions")

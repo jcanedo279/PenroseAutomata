@@ -70,7 +70,6 @@ The following tiling contians over 1.2 million tiles
 We can set any initial condition on any tiing (the more symmetric the easier) then apply state transitions for each tile relative to surrounding tile states.
 This has the effect of averaging the values in an autonomistic fassion in that each automaton has innate variation in its transition rules that allows for emergent behaviour.
 ![convergentMerge1.gif](Examples/convergentMerge1.gif "convergent merge 1")
-
 ![convergentMerge2.gif](Examples/convergentMerge2.gif "convergent merge 2")
 
 **Redundantly mapped states from 7 dimmensions:**
@@ -78,7 +77,6 @@ A redundantly mapping algorithm is one in which the bouding function that maps f
 That is, that there are more states than boundaries (preferably by at least one order of magnitude).
 
 ![multiMap1.gif](Examples/multiMap1.gif "multiMap 1")
-
 ![multiMap2.gif](Examples/multiMap2.gif "multiMap 2")
 
 **Partially mapped states:**
@@ -88,18 +86,14 @@ method that approximates the boundaries (they are very heuristic and not so accu
  dstate of the tiling.
 
 ![partialMapEven1.gif](Examples/partialMapEven1.gif "partialMap even 1")
-
 ![partialMapEven1.gif](Examples/partialMapEven1.gif "partialMap even 1")
-
 ![partialMapOdd1.gif](Examples/partialMapOdd1.gif "partialMap odd 1")
-
 ![partialMapOdd2.gif](Examples/partialMapOdd2.gif "partialMap odd 2")
 
-The two following automata is made by using heavier calculation that is completely (or at least almost) accurate. Note that for accurate adaptive boundaries, there is some
-fluctuation at the backgroud (which sets a potential reference to the tiling). Boundary approximations have no such fluctuation.
+The two following automata are made by using a heavier algorithm that is completely (or at least almost) accurate. Note that for accurate adaptive boundaries, there is some
+fluctuation at the backgroud (which sets a potential reference to the tiling). Adaptive boundary approximations have no such fluctuations.
 
 ![partialMapEvenActual.gif](Examples/partialMapEvenActual.gif "partialMap even actual")
-
 ![partialMapEvenActual2.gif](Examples/partialMapEvenActual2.gif "partialMap even actual 2")
 
 **Deep potential wells as acheieved by certain even dimmensions:**
@@ -107,7 +101,6 @@ In certain even dimmensions (8, 10, 12), deep potential wells form where the geo
 tiling patterns to become localized almost forming emmergent patterns/units. Here certain geometric properties of the tilings make it so that information
 in these systems tend towards potential wells whose boundaries are defined by the emergent patterns.
 ![deepWells1.gif](Examples/deepWells1.gif "deep well 1")
-
 ![deepWells2.gif](Examples/deepWells2.gif "deep well 2")
 
 **Combining deep potential wells and redundant mapping:**
@@ -115,7 +108,6 @@ In contrast to the more crystalline state evolution of deep potential well algor
 similar to those of redundant mapping algs but more crystalline.
 
 ![deepWellMultiMap1.gif](Examples/deepWellMultiMap1.gif "deep well multiMap 1")
-
 ![deepWellMultiMap2.gif](Examples/deepWellMultiMap2.gif "deep well multiMap 2")
 
 **Adaptive boundary:**

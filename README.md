@@ -112,7 +112,7 @@ similar to those of redundant mapping algs but more crystalline.
 
 **Adaptive boundary:**
 Adaptive bundary algorithms are those in which the background or end of the tiling are updated via a function.
-Here the function is the boundary color of the mean of board.
+Here the function is the boundary color of the mean value of the previous grid state.
 ![adaptiveBoundary.gif](Examples/adaptiveBoundary.gif "Adaptive boundary")
 
 **Game of life pattern that diverges:**

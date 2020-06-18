@@ -5,7 +5,7 @@ import time
 
 import random as rd
 
-from MultigridTree import MultigridTree
+from MultigridList import MultigridList
 
 
 class QuadNode:
@@ -34,24 +34,23 @@ class QuadTree:
         self.shiftZeroes, self.shiftRandom, self.shiftByHalves = True, False, False
         self.tileSize = 10
 
-        ## These paths are required for the MultigridTree object to instantiate
-        self.rootPath = 'MultigridTreeData/'
-        self.multigridTreeInd = rd.randrange(0, 2000000000)
-        self.gridPath = 'treeInd' + str(self.multigridTreeInd) + '/'
+        ## These paths are required for the MultigridList object to instantiate
+        self.rootPath = 'MultigridListData/'
+        self.multigridListInd = rd.randrange(0, 2000000000)
+        self.gridPath = 'listInd' + str(self.multigridListInd) + '/'
         self.localPath = self.rootPath + self.gridPath
-        self.localTrashPath = self.localPath.replace('MultigridTreeData', 'TrashTrees')
+        self.localTrashPath = self.localPath.replace('MultigridListData', 'TrashLists')
 
         self.maxGen = maxGen
 
         self.knownNodes = set()
         self.quadToNode = dict()
-
-        self.tree = MultigridTree(self.dim, self.sC, self.size, self.tileSize, self.shiftZeroes, self.shiftRandom, self.shiftByHalves,
-                                  self.tileOutline, self.alpha, self.numColors, self.maxGen, isValued=True,
-                                  valIsRadByDim=self.isRadByDim, valIsRadBySize=self.isRadBySize, numStates=self.numStates)
-        ## Store the grid locally inside of this object, this avoids messing with the generations in MultigridTree
-        self.origGrid = self.tree.currentGrid
-        ## Uses genValMap, findRootTile, and findNeighbour to convert tree's projected tiling into a valued 2d list
+        shiftProperties = (self.shiftZeroes, self.shiftRandom, self.shiftByHalves)
+        self.mList = MultigridList(self.dim, self.sC, self.size, self.tileSize, shiftProperties, self.tileOutline, self.alpha, self.numColors, self.maxGen, self.maxGen,
+                                   isValued=True, valIsRadByDim=self.isRadByDim, valIsRadBySize=self.isRadBySize, numStates=self.numStates)
+        ## Store the grid locally inside of this object, this avoids messing with the generations in MultigridList
+        self.origGrid = self.mList.currentGrid
+        ## Uses genValMap, findRootTile, and findNeighbour to convert gridList's projected tiling into a valued 2d list
         self.genValMap()
         ## This is the call to the divide and conquer recursive function subdivideGrid, returns the root of the quadTree
         self.quadRoot = self.makeQuadTree()
@@ -59,17 +58,16 @@ class QuadTree:
 
 
     def genValMap(self):
+        ## From the following method we find the analytical form of rootTileInd in four dimmensions
         #rootTileInd = findRootTile()
         rootTileInd = [0, -self.size, 1, -self.size]
         currTileInd = rootTileInd
-        while self.origGrid.multiGrid[currTileInd[0]][currTileInd[1]][currTileInd[2]][currTileInd[3]].val == -1:
-            currTileInd = self.findNeighbour(currTileInd, bottomRightN=True)
-        firstPlayableTileInd = currTileInd
 
         playableSideLen = 0
-        while self.origGrid.multiGrid[currTileInd[0]][currTileInd[1]][currTileInd[2]][currTileInd[3]].val != -1:
+        while currTileInd!=[1, -self.size, 2, -self.size]:
             playableSideLen += 1
             currTileInd = self.findNeighbour(currTileInd, rightN=True)
+
 
         maxDepth = math.floor(math.log(playableSideLen, 2))
         self.maxSideLen = 2**maxDepth
@@ -77,7 +75,7 @@ class QuadTree:
         numTilesTilCentered = int((playableSideLen-self.maxSideLen)/2)
 
         for _ in range(numTilesTilCentered):
-            firstPlayableTileInd = self.findNeighbour(firstPlayableTileInd, bottomRightN=True)
+            firstPlayableTileInd = self.findNeighbour(rootTileInd, bottomRightN=True)
 
         self.valMap = [[0 for x in range(self.maxSideLen)] for row in range(self.maxSideLen)]
         currTileInd = firstPlayableTileInd
@@ -130,12 +128,12 @@ class QuadTree:
                     return nInd
 
     '''
-        The following functions (makeNode, subdivideGrid, printQuadTreeNodes) specifically concern the divide and conquer aspect
+        The following functions (makeQuadNode, subdivideGrid, printQuadTreeNodes) specifically concern the divide and conquer aspect
         of the assignment. 
     '''
-    def makeNode(self, currQuadrant):
-        ## Intent: makeNode is a helper method and serves to check if a quadrant has been seen and whether it is completely hashed.
-        # Additionally, makeNode creates and returns the node representative of currQuadrant
+    def makeQuadNode(self, currQuadrant):
+        ## Intent: makeQuadNode is a helper method and serves to check if a quadrant has been seen and whether it is completely hashed.
+        # Additionally, makeQuadNode creates and returns the node representative of currQuadrant
         hashQuad = tuple([self.origGrid.valToBound(gridVal) for gridVal in currQuadrant])
         if hashQuad in self.knownNodes:
             return self.quadToNode.get(hashQuad)
@@ -171,7 +169,7 @@ class QuadTree:
         ## Post4: If the node is not a leaf then it contains references to four child nodes, one for each of the four cardinal directions
         # the current quadrant of valMap is split in four and each child is called with its respective boundaries
         ## Post5: All returned nodes are canonicalized by memoization, previously seen nodes return a reference to the previously created object
-        node = self.makeNode([val for row in self.valMap[xi:xf] for val in row[yi:yf]])
+        node = self.makeQuadNode([val for row in self.valMap[xi:xf] for val in row[yi:yf]])
         if (not node.isLeaf) and (not node.isCompletelyHashed):
             xc, yc = (xf-xi)//2, (yf-yi)//2
             node.topLeft = self.subdivideGrid(xi, xi+xc, yi, yi+yc)
@@ -208,14 +206,18 @@ def main():
     sC = 0
     size = 5
 
-    numStates = 10
-    numColors = 10
+
+    ## These must both be greater than 4
+    numStates = 1000
+    numColors = 10000
 
     tileOutline = True
     alpha = 1
+    ## Do not change these
     isRadByDim, isRadBySize = False, False
 
-    maxGen = 0
+    ## How many generations into the animation we start the quadTree algorithm
+    maxGen = 10
 
     quadTree = QuadTree(dim, sC, size, numStates, numColors, tileOutline, alpha, isRadByDim, isRadBySize, maxGen)
     quadTree.printQuadTreeNodes(quadTree.quadRoot, dispid=True)

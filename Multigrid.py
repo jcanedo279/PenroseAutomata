@@ -27,7 +27,7 @@ class Multigrid:
                 sC=0, tileSize=10,shiftProperties=(False, True, False),
                 tileOutline=False, alpha=1, startTime=0, rootPath=None,
                 isValued=False, valIsRadByDim=False, valIsRadBySize=False,
-                bounds=None, boundToCol=None, boundToPC=None,
+                bounds=None, boundToCol=None, boundToPC=None, boundaryApprox=True,
                 ptIndex=None, shiftVect=None, valRatio=None, numStates=None, colors=None, gol=False, isBoundaried=False):
         
         ## Multigrid object and instantiate its constant parameters
@@ -56,6 +56,7 @@ class Multigrid:
 
         ## Boundarying
         self.isBoundaried = isBoundaried
+        self.boundaryApprox = boundaryApprox
         self.numStable = 0
         self.stableTiles = []
         self.stablePatches = []
@@ -93,14 +94,14 @@ class Multigrid:
     def genttm(self):
         ## Intent: Find the tile type of all tiles
         if self.dim%2 == 0:
-            t = int((self.dim/2)-1)
+            numTileTypes = int((self.dim/2)-1)
         else:
-            t = int((self.dim-1)/2)
-        self.t = t
+            numTileTypes = int((self.dim-1)/2)
+        self.numTileTypes = numTileTypes
         ## create tile type adjacency matrix
         ttm = [[0 for x in range(self.dim)] for y in range(self.dim)]
         for x in range(self.dim):
-            for y in range(1, t+1):
+            for y in range(1, self.numTileTypes+1):
                 if x+y >= self.dim:
                     ttm[x][(x+y)-self.dim] = y-1
                 else:
@@ -140,7 +141,7 @@ class Multigrid:
     ####################
     ## Setter Methods ##
     ####################
-    def setFigs(self, ax):
+    def setFig(self, ax):
         self.ax = ax
     
     def setValStats(self, numTiles, valAvg, valStdDev):
@@ -244,6 +245,8 @@ class Multigrid:
         ## Called once at start to generate tiling
         #
         ## Create multigrid instance of cell objects
+        if self.numTileTypes>len(self.colors):
+            colors = sns.cubehelix_palette(self.numTileTypes, dark=0.1, light=0.9)
         self.multiGrid = [[[[None for b in range(-self.size, self.size+1)] for s in range(self.dim)] for a in range(-self.size, self.size+1)] for r in range(self.dim)]
         self.values = []
         for r in range(self.dim):
@@ -252,7 +255,10 @@ class Multigrid:
                     for b in range(-self.size, self.size+1):
 
                         tileType = self.ttm[r][s]
-                        color = self.colors[tileType]
+                        if self.numTileTypes<=len(self.colors):
+                            color = self.colors[tileType]
+                        else:
+                            color = colors[tileType]
 
                         p_rs_ab = MultigridCell(self.dim, r, s, a, b, self.shiftVect[r], self.shiftVect[s], tileType)
                         p_rs_ab.setStability(False)
@@ -342,12 +348,12 @@ class Multigrid:
         shiftProperties=(self.shiftZeroes, self.shiftRandom, self.shiftByHalves)
 
         nextGrid = Multigrid(self.dim, self.size, sC=self.sC, tileSize=self.tileSize, shiftProperties=shiftProperties, tileOutline=self.tileOutline, alpha=self.alpha,
-                            rootPath=self.rootPath, bounds=self.bounds, boundToCol=self.boundToCol, boundToPC=self.boundToPC,
+                            rootPath=self.rootPath, bounds=self.bounds, boundToCol=self.boundToCol, boundToPC=self.boundToPC, boundaryApprox=self.boundaryApprox,
                             isValued=True, valIsRadByDim=self.valIsRadByDim, valIsRadBySize=self.valIsRadBySize,
                             ptIndex=self.ptIndex+1, shiftVect=self.shiftVect, valRatio=self.valRatio, numStates=self.numStates, colors=self.colors,
                             gol=self.gol, isBoundaried=self.isBoundaried)
         if animating:
-            nextGrid.setFigs(self.ax)
+            nextGrid.setFig(self.ax)
         nextGrid.multiGrid, nextGrid.zero = self.multiGrid, self.zero
         nextGrid.values, nextGrid.numTiles, nextGrid.gridValAvg, nextGrid.valStdDev = self.values, self.numTiles, self.gridValAvg, self.valStdDev
 
@@ -385,6 +391,7 @@ class Multigrid:
                     continue
                 self.updateTileVals(t1, t2)
                 values.append(t1.val)
+        self.unstableTiles = list(set(self.unstableTiles))
         self.numTiles = len(values)
         self.valAvg = sum(values)/self.numTiles
         self.valStdDev = math.sqrt(sum([(val-self.valAvg)**2 for val in values])/self.numTiles)
@@ -509,6 +516,7 @@ class Multigrid:
     ########################
     ## For the merge algorithm
     def updateTileVals(self, t1, t2):
+        t1index = (t1.r, t1.a, t1.s, t1.b)
         t1neighbourValTotal = 0
         t1isStable = True
         currBound = self.valToBound(t1.val)
@@ -516,10 +524,9 @@ class Multigrid:
             n = self.multiGrid[neighbour[0]][neighbour[1]][neighbour[2]][neighbour[3]]
             t1neighbourValTotal += n.val
             nBound = self.valToBound(n.val)
-            if (n.val==-1) or (nBound != currBound):
+            if (n.val==-1) or (nBound!=currBound):
                 t1isStable = False
                 t1.setStability(False)
-                t1index = (t1.r, t1.a, t1.s, t1.b)
                 self.unstableTiles.append(t1index)
                 break
         if t1isStable:
@@ -539,6 +546,11 @@ class Multigrid:
         t2Val = t1.val + (t1neighbourValAvg - t1.val)*pc
         #t2Val = self.valRatio*t1.val + (1-self.valRatio)*t1neighbourValAvg
         t2Color = self.boundToCol.get(self.valToBound(t2Val))
+        ## If the tile state has changed, all previously like-stated stable tiles are set to unstable
+        if not self.boundaryApprox:
+            if t2Color != t1.color:
+                for neighbour in t1.neighbourhood:
+                    self.unstableTiles.append(tuple(neighbour))
         t2.setVal(t2Val)
         t2.setColor(t2Color)
     ## For the GOL algorithm
@@ -574,7 +586,7 @@ class Multigrid:
     def displayTiling(self, printImage=False):
         self.setFigExtras()
         self.patches = []
-        colorList = sns.cubehelix_palette(self.t, dark=0, light=0.8)
+        colorList = sns.cubehelix_palette(self.numTileTypes, dark=0, light=0.8)
         for r in range(self.dim):
             for a in range(-self.size, self.size+1):
                 for s in range(r+1, self.dim):
@@ -645,7 +657,7 @@ class Multigrid:
 def main():
     # dim up to 501 works for size = 1
     start = timeit.timeit()
-    dim = 13
+    dim = 5
     sC = 0
     size = 5
     tileSize = 10

@@ -30,7 +30,7 @@ class MultigridList:
     ##################
     def __init__(self, dim, sC, size, tileSize, shiftProperties, tileOutline, alpha, c, minGen, maxGen,
                  isValued=True, valIsRadByDim=False, valIsRadBySize=False, valRatio=None, numStates=None,
-                 gol=False, overide=False, isBoundaried=False, shiftVect=None):
+                 gol=False, overide=False, isBoundaried=False, boundaryApprox=True, shiftVect=None):
         
         ## Animation on
         self.animating = True
@@ -58,6 +58,7 @@ class MultigridList:
 
         ## Boundary variables
         self.isBoundaried = isBoundaried
+        self.boundaryApprox = boundaryApprox
         self.numBoundaries = []
         self.percentStableRepeatCount = 0
         self.stability = []
@@ -93,7 +94,7 @@ class MultigridList:
         origGrid = Multigrid(self.dim, self.size, sC=self.sC, tileSize=self.tileSize, shiftProperties=shiftProperties,
                             tileOutline=self.tileOutline, alpha=self.alpha, rootPath=self.localTrashPath,
                             isValued=self.isValued, valIsRadByDim=valIsRadByDim, valIsRadBySize=valIsRadBySize,
-                            bounds=self.bounds, boundToCol=self.boundToCol, boundToPC=self.boundToPC,
+                            bounds=self.bounds, boundToCol=self.boundToCol, boundToPC=self.boundToPC, boundaryApprox=self.boundaryApprox,
                             ptIndex=self.ptIndex, valRatio=self.valRatio, numStates=self.numStates, colors=self.colors,
                             gol=self.gol, isBoundaried=isBoundaried, shiftVect=self.shiftVect)
         self.ptIndex += 1
@@ -102,7 +103,7 @@ class MultigridList:
             self.animatingFigure = plt.figure()
             self.ax = plt.axes()
             self.ax.axis('equal')
-            origGrid.setFigs(self.ax)
+            origGrid.setFig(self.ax)
         
         origGrid.genTiling()
         print('Original tile generated')
@@ -348,11 +349,11 @@ def cleanFileSpace(cleaning, selectiveSpace=False, trashSpace=False):
 def main():
     cleanFileSpace(cleaning=True, selectiveSpace=False, trashSpace=True)
 
-    numIterations = 5
+    numIterations = 100
     for _ in range(numIterations):
-        dim = 5
+        dim = 11
         sC = 1/2
-        size = 5
+        size = 8
         tileOutline = True
         alpha = 1
         shiftZeroes, shiftRandom, shiftByHalves = True, False, False
@@ -362,14 +363,17 @@ def main():
         #    If size>>dim -> isRadBySize=True
         isRadByDim, isRadBySize = False, False
 
-        numColors = 1000
-        numStates = 10000
+        numColors = 100
+        numStates = 100
         minGen = 40
         maxGen = 40
 
         shiftVect=None
 
-        isBoundaried = False
+        isBoundaried = True
+        ## Setting boundary approx trades time complexity for calculating the exact tiling
+        ## Setting boundaryApprox as True improves time complexity and gives tiling approximation
+        boundaryApprox = False
 
         gol=False
 
@@ -382,7 +386,7 @@ def main():
         tileSize = 10
         mList = MultigridList(dim, sC, size, tileSize, shiftProperties, tileOutline, alpha, numColors, minGen, maxGen,
                              isValued=True, valIsRadByDim=isRadByDim, valIsRadBySize=isRadBySize, numStates=numStates,
-                             gol=gol, overide=overide, isBoundaried=isBoundaried, shiftVect=shiftVect)
+                             gol=gol, overide=overide, isBoundaried=isBoundaried, boundaryApprox=boundaryApprox, shiftVect=shiftVect)
         ## Finalize tiling
         mList.finalizeAutomata()
 ## Local main call

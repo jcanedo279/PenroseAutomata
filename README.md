@@ -86,7 +86,7 @@ method that approximates the boundaries (they are very heuristic and not so accu
  dstate of the tiling.
 
 ![partialMapEven1.gif](Examples/partialMapEven1.gif "partialMap even 1")
-![partialMapEven1.gif](Examples/partialMapEven1.gif "partialMap even 1")
+![partialMapEven2.gif](Examples/partialMapEven2.gif "partialMap even 2")
 ![partialMapOdd1.gif](Examples/partialMapOdd1.gif "partialMap odd 1")
 ![partialMapOdd2.gif](Examples/partialMapOdd2.gif "partialMap odd 2")
 

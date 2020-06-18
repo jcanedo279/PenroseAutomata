@@ -1,3 +1,7 @@
+# About
+     If you are not here for the divide and conquer algorithm, a newer version of this code may exist
+This branch is a version of tha master PenroseAutomata repository that is only here to act as a stable version of the QuadTree divide and conquer algorithm.
+
 # PenroseAutomata
      A series of algorithms to automate the PT calculated in the PenroseTiler repository
 The PenroseAutomata repository comprises five parts:

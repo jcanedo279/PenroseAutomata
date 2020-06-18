@@ -83,7 +83,7 @@ That is, that there are more states than boundaries (preferably by at least one 
 A partially mapping algorithm is one in which the bouding function is not only one to one, but also the transition from state to state is slow.
 Note that these algorithms also use adaptive boundaries as they are computationally heavy to recreate, additionally the four following tilings are made using a
 method that approximates the boundaries (they are very heuristic and not so accurate), although they are accurate at predicting the final divergent or convergent
- dstate of the tiling.
+state of the tiling.
 
 ![partialMapEven1.gif](Examples/partialMapEven1.gif "partialMap even 1")
 ![partialMapEven2.gif](Examples/partialMapEven2.gif "partialMap even 2")

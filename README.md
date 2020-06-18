@@ -72,7 +72,7 @@ This has the effect of averaging the values in an autonomistic fassion in that e
 ![convergentMerge1.gif](Examples/convergentMerge1.gif "convergent merge 1")
 ![convergentMerge2.gif](Examples/convergentMerge2.gif "convergent merge 2")
 
-**Redundantly mapped states from 7 dimmensions:**
+**Redundantly mapped states from 7 and 70 dimmensions:**
 A redundantly mapping algorithm is one in which the bouding function that maps from the number of states to the number of boundaries is not one to one.
 That is, that there are more states than boundaries (preferably by at least one order of magnitude).
 

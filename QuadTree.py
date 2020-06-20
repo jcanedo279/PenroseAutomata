@@ -183,13 +183,13 @@ class QuadTree:
         return self.subdivideGrid(0, self.maxSideLen, 0, self.maxSideLen)
 
     def printQuadTreeNodes(self, currNode, allNodes=False, dispid=False):
-        if dispid:
-            print(id(currNode))
         if allNodes:
             print('val={}'.format(currNode.val))
             print('size={}'.format(currNode.sideLen))
+            print(id(currNode))
         elif currNode.isLeaf:
             print('val={}, size={}'.format(currNode.val, currNode.sideLen))
+            print(id(currNode))
         if not currNode.isLeaf:
             if currNode.bottomLeft != None:
                 self.printQuadTreeNodes(currNode.bottomLeft, allNodes=allNodes, dispid=dispid)

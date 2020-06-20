@@ -1,3 +1,7 @@
+import cProfile
+import pstats
+
+
 ## System
 import time
 import os
@@ -29,7 +33,7 @@ class MultigridList:
     ## Init Methods ##
     ##################
     def __init__(self, dim, sC, size, tileSize, shiftProperties, tileOutline, alpha, c, minGen, maxGen,
-                 isValued=True, valIsRadByDim=False, valIsRadBySize=False, valRatio=None, numStates=None,
+                 isValued=True, valuedByDim=False, valuedBySize=False, valRatio=None, numStates=None,
                  gol=False, overide=False, isBoundaried=False, boundaryApprox=True, shiftVect=None):
         
         ## Animation on
@@ -54,6 +58,7 @@ class MultigridList:
 
         ## State value settings
         self.isValued = isValued
+        self.valuedByDim, self.valuedBySize = valuedByDim, valuedBySize
         self.valRatio=valRatio
 
         ## Boundary variables
@@ -70,7 +75,6 @@ class MultigridList:
 
         ## Misc
         self.overide = overide
-        self.setOriginal = True
 
         ## Game of life boolean
         self.gol = gol
@@ -91,41 +95,28 @@ class MultigridList:
         self.multigridList = []
 
         ## Create and animate original tiling
-        origGrid = Multigrid(self.dim, self.size, sC=self.sC, tileSize=self.tileSize, shiftProperties=shiftProperties,
+        self.currentGrid = Multigrid(self.dim, self.size, sC=self.sC, tileSize=self.tileSize, shiftProperties=shiftProperties,
                             tileOutline=self.tileOutline, alpha=self.alpha, rootPath=self.localTrashPath,
-                            isValued=self.isValued, valIsRadByDim=valIsRadByDim, valIsRadBySize=valIsRadBySize,
+                            isValued=self.isValued, valuedByDim=self.valuedByDim, valuedBySize=self.valuedBySize,
                             bounds=self.bounds, boundToCol=self.boundToCol, boundToPC=self.boundToPC, boundaryApprox=self.boundaryApprox,
                             ptIndex=self.ptIndex, valRatio=self.valRatio, numStates=self.numStates, colors=self.colors,
                             gol=self.gol, isBoundaried=isBoundaried, shiftVect=self.shiftVect)
-        self.ptIndex += 1
 
         if self.animating:
             self.animatingFigure = plt.figure()
             self.ax = plt.axes()
             self.ax.axis('equal')
-            origGrid.setFig(self.ax)
-        
-        origGrid.genTiling()
-        print('Original tile generated')
-        origGrid.genTileNeighbourhoods()
-        print('Tile neighbourhood generated')
-        self.origAx = origGrid.displayTiling()
-        
-        if self.animating:
-            self.currentGrid = origGrid
-        else:
-            self.multigridList.append(origGrid)
-
-        if self.animating:
-            lim = 10
-            bound = lim*(self.size+self.dim-1)**1.2
-            self.ax.set_xlim(-bound + origGrid.zero[0], bound + origGrid.zero[0])
-            self.ax.set_ylim(-bound + origGrid.zero[1], bound + origGrid.zero[1])
 
             self.anim = FuncAnimation(self.animatingFigure, self.updateAnimation, frames=self.genFrames, init_func=self.initPlot(), repeat=False)
-            self.updateDir(origGrid.shiftVect)  
+            self.updateDir(self.currentGrid.shiftVect)
+
+            lim = 10
+            bound = lim*(self.size+self.dim-1)**1.2
+            self.ax.set_xlim(-bound + self.currentGrid.zero[0], bound + self.currentGrid.zero[0])
+            self.ax.set_ylim(-bound + self.currentGrid.zero[1], bound + self.currentGrid.zero[1])
         else:
-            self.tilingIter(origGrid)
+            self.multigridList.append(self.currentGrid)
+            self.tilingIter(self.currentGrid)
 
     def initPlot(self):
         self.ax.cla()
@@ -137,54 +128,57 @@ class MultigridList:
     ## Update Methods For Animation Cycle ##
     ########################################
     def updateDir(self, shiftVect):
-        if self.dim < 7:
-            shiftVectStr = ', '.join(str(round(i,1)) for i in shiftVect)
-            self.ax.set_title("n=" + str(self.dim) +  ", size=" + str(self.size) + ", shiftConstant=" + str(self.sC) + ",  shiftVect~[" + shiftVectStr + "]")
-        else:
-            shifts = [str(round(i,1)) for i in shiftVect]
-            self.ax.set_title("n=" + str(self.dim) +  ", size=" + str(self.size) + ", shiftConstant=" + str(self.sC) + ",  shiftVect~[" + shifts[0] + ", ..., " + shifts[self.dim-1]  + "]")
+        #if self.dim < 7:
+            #shiftVectStr = ', '.join(str(round(i,1)) for i in shiftVect)
+            #self.ax.set_title(f"n={self.dim}, size={self.size}, shiftConstant={self.sC}, shiftVect~[{shiftVectStr}]")
+        #else:
+            #shifts = [str(round(i,1)) for i in shiftVect]
+            #self.ax.set_title(f"n={self.dim}, size={self.size}, shiftConstant={self.sC}, shiftVect~[{shifts[0]}, ..., {shifts[self.dim-1]}]")
         
         os.makedirs(self.localTrashPath)
         self.anim.save(self.gifTrashPath, writer=PillowWriter(fps=4))
 
     def updateAnimation(self, i):
-        if self.setOriginal:
-            self.setOriginal=False
-            return self.origAx
         if self.ptIndex==0:
-            del self.origAx
-        origGrid = self.currentGrid
-        origGrid.ax.cla()
-        nextGrid, axis = origGrid.genNextValuedGridState(animating=True, boundaried=self.isBoundaried)
-        self.stability.append(origGrid.percentStable)
-        if self.isBoundaried:
-            self.numBoundaries.append(nextGrid.numBoundaries)
-            if self.ptIndex==1:
-                self.origNumBoundaries = nextGrid.numBoundaries
-        if self.isBoundaried and (self.ptIndex > 1):
-            if nextGrid.numBoundaries/self.origNumBoundaries == self.prevPercentStable:
-                self.percentStableRepeatCount += 1
-            else:
-                self.percentStableRepeatCount = 0
-            self.prevPercentStable = nextGrid.numBoundaries/self.origNumBoundaries
-            #print(nextGrid.numBoundaries/self.origNumBoundaries, origGrid.numBoundaries, self.percentStableRepeatCount)
-        ## Stop the animation before maxGen
-        if self.isBoundaried and (not self.gol) and (not self.overide) and (self.ptIndex > 1) and ((nextGrid.numBoundaries/self.origNumBoundaries < 0.5) or (self.percentStableRepeatCount > 1)):
-            self.continueAnimation = False
+            self.currentGrid.genTiling()
+            print('Original tile generated')
+            self.currentGrid.genTileNeighbourhoods()
+            print('Tile neighbourhood generated')
+            axis = self.currentGrid.displayTiling()
+            self.origAx = axis
+        else:
+            origGrid = self.currentGrid
+            origGrid.ax.cla()
+            nextGrid, axis = origGrid.genNextValuedGridState(animating=True, boundaried=self.isBoundaried)
+            self.stability.append(origGrid.percentStable)
+            if self.isBoundaried:
+                self.numBoundaries.append(nextGrid.numBoundaries)
+                if self.ptIndex==1:
+                    self.origNumBoundaries = nextGrid.numBoundaries
+            if self.isBoundaried and (self.ptIndex > 1):
+                if nextGrid.numBoundaries/self.origNumBoundaries == self.prevPercentStable:
+                    self.percentStableRepeatCount += 1
+                else:
+                    self.percentStableRepeatCount = 0
+                self.prevPercentStable = nextGrid.numBoundaries/self.origNumBoundaries
+                #print(nextGrid.numBoundaries/self.origNumBoundaries, origGrid.numBoundaries, self.percentStableRepeatCount)
+            ## Stop the animation before maxGen
+            if self.isBoundaried and (not self.gol) and (not self.overide) and (self.ptIndex > 1) and ((nextGrid.numBoundaries/self.origNumBoundaries < 0.5) or (self.percentStableRepeatCount > 1)):
+                self.continueAnimation = False
+            self.currentGrid = nextGrid
+            ## I think this helps with the memory leaks
+            del origGrid
         ## Format animation title
         if self.dim < 7:
-            shiftVectStr = ', '.join(str(round(i,1)) for i in origGrid.shiftVect)
-            title = 'n={}, size={}, sC={}, sV=[{}], gen={}'.format(self.dim, self.size, self.sC, shiftVectStr, self.ptIndex)
+            shiftVectStr = ', '.join(str(round(i,1)) for i in self.currentGrid.shiftVect)
+            title = f'n={self.dim}, size={self.size}, sC={self.sC}, sV=[{shiftVectStr}], gen={self.ptIndex}'
             self.ax.set_title(title)
         else:
-            shifts = [str(round(i,1)) for i in origGrid.shiftVect]
-            title = 'n={}, size={}, sC={}, sV=[{}, ..., {}], gen={}'.format(self.dim, self.size, self.sC, shifts[0], shifts[self.dim-1], self.ptIndex)
+            shifts = [str(round(i,1)) for i in self.currentGrid.shiftVect]
+            title = f'n={self.dim}, size={self.size}, sC={self.sC}, sV=[{shifts[0]}, ..., {shifts[self.dim-1]}], gen={self.ptIndex}'
             self.ax.set_title(title)
+        print(f'Grid {self.ptIndex} complete')
         self.ptIndex += 1
-        self.currentGrid = nextGrid
-        ## I think this helps with the memory leaks
-        del origGrid
-        print('Grid {} complete'.format(self.ptIndex))
         return axis
 
     ############################
@@ -194,34 +188,34 @@ class MultigridList:
         ## This ensures that all multigrid parameters are valid
         if self.dim<3:
             self.dim=3
-            print("Dimmension '{}' < 3, dimmensions smaller than three cannot be projected".format(self.dim))
+            print(f"Dimmension '{self.dim}' < 3, dimmensions smaller than three cannot be projected")
             print('Dimmension defaulted to 5')
         if self.size<0:
             self.size=0
-            print("Size '{}' < 0, sizes the minimum size of a tiling is 0".format(self.size))
+            print(f"Size '{self.size}' < 0, sizes the minimum size of a tiling is 0")
             print('Size defaulted to 0')
         if self.tileSize<0:
             self.tileSize=10
-            print("Tiling size '{}' < 0, the size of each tile must be positive, as do all lengths".format(self.tileSize))
+            print(f"Tiling size '{self.tileSize}' < 0, the size of each tile must be positive, as do all lengths")
             print('Tiling Size deafulted to 10')
         if self.numColors>self.numStates:
             self.numStates, self.numColors = 10, 10
-            print("The number of colors '{}' > the numebr of states '{}', this is impossible".format(self.numColors, self.numStates))
+            print(f"The number of colors '{self.numColors}' > the numebr of states '{self.numStates}', this is impossible")
             print('The number of colors and the number of states both defaulted to 10')
         if self.numColors<1:
             if self.numStates>=10:
                 self.numColors=10
             else:
                 self.numColors=self.numStates
-            print("The number of colors '{}' < 1, the number of colors must be greater than 0".format(self.numColors))
+            print(f"The number of colors '{self.numColors}' < 1, the number of colors must be greater than 0")
             print('The number of colors defaulted to 10')
         if self.numStates<1:
             self.numStates=self.numColors
-            print("The number of states '{}' < 1, the number of states must be greater than 0".format(self.numStates))
-            print("The number of states defaulted to the number of states: '{}'".format(self.numStates))
+            print(f"The number of states '{self.numStates}' < 1, the number of states must be greater than 0")
+            print(f"The number of states defaulted to the number of states: '{self.numStates}'")
         if self.maxGen<0:
             self.maxGen=0
-            print("The maximum generation '{}' < 0, the maximum generation must be greater than or equal to 0")
+            print(f"The maximum generation '{self.maxGen}' < 0, the maximum generation must be greater than or equal to 0")
             print('The maximum generation defaulted to 0')
         print('Paramters Validated')
 
@@ -229,22 +223,27 @@ class MultigridList:
     ## Generator Methods ##
     #######################
     def genFrames(self):
-        while (self.ptIndex < self.maxGen-1)  and self.continueAnimation:
+        while (self.ptIndex < self.maxGen)  and self.continueAnimation:
             self.ax.cla()
             yield self.ptIndex
         yield StopIteration
 
     def genDirectoryPaths(self):
+        ## rootPath and path data
         self.rootPath = 'MultigridListData/'
-        self.multigridListInd = rd.randrange(0, 2000000000)
-        self.gridPath = 'listInd' + str(self.multigridListInd) + '/'
+        self.multigridListInd = str(rd.randrange(0, 2000000000))
+        self.gridPath = f'listInd{self.multigridListInd}/'
+        ## localPaths
         self.localPath = self.rootPath + self.gridPath
         self.localTrashPath = self.localPath.replace('MultigridListData', 'TrashLists')
-        self.gifPath = self.localPath + 'listInd' + str(self.multigridListInd) + 'Animation.gif'
+        ## gifPaths
+        self.gifPath = f'{self.localPath}listInd{self.multigridListInd}Animation.gif'
         self.gifTrashPath = self.gifPath.replace('MultigridListData', 'TrashLists')
-        self.stabilityPath = self.localPath + 'listInd' + str(self.multigridListInd) + 'stability.png'
+        ## stabilityPaths
+        self.stabilityPath = f'{self.localPath}listInd{self.multigridListInd}stability.png'
         self.stabilityTrashPath = self.stabilityPath.replace('MultigridListData', 'TrashLists')
-        self.numBoundariesPath = self.localPath + 'listInd' + str(self.multigridListInd) + 'numBoundaries.png'
+        ## numBoundariesPaths
+        self.numBoundariesPath = f'{self.localPath}listInd{self.multigridListInd}numBoundaries.png'
         self.numBoundariesTrashPath = self.numBoundariesPath.replace('MultigridListData', 'TrashLists')
 
     def genBounds(self):
@@ -296,13 +295,18 @@ class MultigridList:
         ## Save the boundaries
         self.saveBoundaryFig()
         ## Relocate fit tilings
-        if self.ptIndex > self.minGen:
+        if self.ptIndex > self.minGen+1:
             files = glob.glob(self.localTrashPath)
             for f in files:
                 shutil.move(f, self.localPath)
         ## Print execution completion and time
         print('Algorithm Completed')
         print('Executed in {} seconds'.format(time.time()-self.startTime))
+
+
+
+
+
 
 
     #####################################################
@@ -345,50 +349,70 @@ def cleanFileSpace(cleaning, selectiveSpace=False, trashSpace=False):
             tFiles = glob.glob('TrashLists/*')
             for tF in tFiles:
                 shutil.rmtree(tF)
+
 ## Main definition
 def main():
+    #p = cProfile.Profile()
+
+    # Enable profiling
+    #p.enable()
+
     cleanFileSpace(cleaning=True, selectiveSpace=False, trashSpace=True)
 
-    numIterations = 100
+    numIterations = 1
     for _ in range(numIterations):
-        dim = 11
-        sC = 1/2
-        size = 8
+        dim = 15
+        sC = 0 
+        size = 5
         tileOutline = True
         alpha = 1
         shiftZeroes, shiftRandom, shiftByHalves = True, False, False
         shiftProperties = (shiftZeroes, shiftRandom, shiftByHalves)
         ## For extreme tilings:
-        #    If dim>>size -> isRadByDim=True
-        #    If size>>dim -> isRadBySize=True
-        isRadByDim, isRadBySize = False, False
+        #    If dim>>size -> valuedByDim=True
+        #    If size>>dim -> valuedBySize=True
+        valuedByDim, valuedBySize = True, False
 
         numColors = 100
-        numStates = 100
-        minGen = 40
-        maxGen = 40
+        numStates = 100000
+        minGen = 20
+        maxGen = 20
 
-        shiftVect=None
+        shiftVect = None
 
-        isBoundaried = True
+        isBoundaried = False
         ## Setting boundary approx trades time complexity for calculating the exact tiling
         ## Setting boundaryApprox as True improves time complexity and gives tiling approximation
         boundaryApprox = False
 
         gol=False
 
+        ## Overide ensures maxGen generations
         overide=False
 
-        if isRadByDim:
+
+        if gol:
+            isBoundaried=False
+        if valuedByDim:
             numColors = dim
-        elif isRadBySize:
+        elif valuedBySize:
             numColors = size+1
         tileSize = 10
         mList = MultigridList(dim, sC, size, tileSize, shiftProperties, tileOutline, alpha, numColors, minGen, maxGen,
-                             isValued=True, valIsRadByDim=isRadByDim, valIsRadBySize=isRadBySize, numStates=numStates,
+                             isValued=True, valuedByDim=valuedByDim, valuedBySize=valuedBySize, numStates=numStates,
                              gol=gol, overide=overide, isBoundaried=isBoundaried, boundaryApprox=boundaryApprox, shiftVect=shiftVect)
         ## Finalize tiling
         mList.finalizeAutomata()
+    #p.disable()
+    #p.print_stats()
+
+    # Dump the stats to a file
+    #p.dump_stats("results.prof")
+
 ## Local main call
 if __name__ == '__main__':
     main()
+
+
+
+##### IF THE DIM IS EVEN, EACH ITERATION ITERATES OVER AN INVALID GRID INTERSECTION, THATS WHY WE GET SOME LINES NOT RHOMBS I THINK

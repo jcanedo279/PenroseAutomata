@@ -1,12 +1,18 @@
+from multiprocessing import Pool
+
+
 ## System
 import os
-import timeit
+import time
 ## Operations
 import math
 import itertools
+import bisect
 import copy
 ## Random
 import random as rd
+## Numpy
+import numpy as np
 ## Matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
@@ -26,7 +32,7 @@ class Multigrid:
     def __init__(self, dim, size,
                 sC=0, tileSize=10,shiftProperties=(False, True, False),
                 tileOutline=False, alpha=1, startTime=0, rootPath=None,
-                isValued=False, valIsRadByDim=False, valIsRadBySize=False,
+                isValued=False, valuedByDim=False, valuedBySize=False,
                 bounds=None, boundToCol=None, boundToPC=None, boundaryApprox=True,
                 ptIndex=None, shiftVect=None, valRatio=None, numStates=None, colors=None, gol=False, isBoundaried=False):
         
@@ -47,9 +53,10 @@ class Multigrid:
         self.colors = colors
 
         ## Initial value conditions and rule defs
-        self.isValuedGrid, self.valIsRadByDim, self.valIsRadBySize = isValued, valIsRadByDim, valIsRadBySize
+        self.isValuedGrid, self.valuedByDim, self.valuedBySize = isValued, valuedByDim, valuedBySize
         self.valRatio = valRatio
         self.bounds, self.boundToCol, self.boundToPC = bounds, boundToCol, boundToPC
+        self.boundarySet = set(self.bounds)
 
         ## adjacencyMatrix of tile types
         self.ttm = self.genttm()
@@ -130,20 +137,13 @@ class Multigrid:
             yield from (scaledVert.real, scaledVert.imag)
 
     def valToBound(self, val):
-        if val in self.bounds:
-            return val
-        else:
-            boundCopy = self.bounds.copy()
-            boundCopy.append(val)
-            boundCopy.sort()
-            return self.bounds[boundCopy.index(val)]
-
+        ## Search sorted is the perfect function for this application and does the job in O(log(n)) tc
+        ## Search sorted returns the index of the first number in self.bounds that is greater then or equal to val
+        return self.bounds[np.searchsorted(self.bounds, val)]
+       
     ####################
     ## Setter Methods ##
     ####################
-    def setFig(self, ax):
-        self.ax = ax
-    
     def setValStats(self, numTiles, valAvg, valStdDev):
         self.numTiles = numTiles
         self.valAvg = valAvg
@@ -157,10 +157,10 @@ class Multigrid:
         self.ax.set_ylim(-bound + self.zero[1], bound + self.zero[1])
         if self.dim < 7:
             shiftVectStr = ', '.join(str(round(i,1)) for i in self.shiftVect)
-            self.ax.set_title("n=" + str(self.dim) +  ", size=" + str(self.size) + ", shiftConstant=" + str(self.sC) + ",  shiftVect~[" + shiftVectStr + "]")
+            self.ax.set_title(f"n={self.dim}, size={self.size}, shiftConstant={self.sC}, shiftVect~[{shiftVectStr}]")
         else:
             shifts = [str(round(i,1)) for i in self.shiftVect]
-            self.ax.set_title("n=" + str(self.dim) +  ", size=" + str(self.size) + ", shiftConstant=" + str(self.sC) + ",  shiftVect~[" + shifts[0] + ", ..., " + shifts[self.dim-1]  + "]")
+            self.ax.set_title(f"n={self.dim}, size={self.size}, shiftConstant={self.sC}, shiftVect~[{shifts[0]}, ..., {shifts[self.dim-1]}]")
 
     ########################
     ## Functional Methods ##
@@ -292,7 +292,7 @@ class Multigrid:
                             p_rs_ab.setVal(tileType)
                             self.values.append(tileType)
                         ## Dimmensionally Valued
-                        elif self.ptIndex==0 and self.valIsRadByDim:
+                        elif self.ptIndex==0 and self.valuedByDim:
                             if r==0:
                                 val=rd.randrange(0, self.bounds[r]+1)
                             else:
@@ -302,7 +302,7 @@ class Multigrid:
                             p_rs_ab.setVal(val)
                             self.values.append(val)
                         ## Radially Valued
-                        elif self.ptIndex==0 and self.valIsRadBySize:
+                        elif self.ptIndex==0 and self.valuedBySize:
                             if abs(a)==0:
                                 val=rd.randrange(self.bounds[abs(a)], self.bounds[abs(a)+1]+1)
                             else:
@@ -349,11 +349,9 @@ class Multigrid:
 
         nextGrid = Multigrid(self.dim, self.size, sC=self.sC, tileSize=self.tileSize, shiftProperties=shiftProperties, tileOutline=self.tileOutline, alpha=self.alpha,
                             rootPath=self.rootPath, bounds=self.bounds, boundToCol=self.boundToCol, boundToPC=self.boundToPC, boundaryApprox=self.boundaryApprox,
-                            isValued=True, valIsRadByDim=self.valIsRadByDim, valIsRadBySize=self.valIsRadBySize,
+                            isValued=True, valuedByDim=self.valuedByDim, valuedBySize=self.valuedBySize,
                             ptIndex=self.ptIndex+1, shiftVect=self.shiftVect, valRatio=self.valRatio, numStates=self.numStates, colors=self.colors,
                             gol=self.gol, isBoundaried=self.isBoundaried)
-        if animating:
-            nextGrid.setFig(self.ax)
         nextGrid.multiGrid, nextGrid.zero = self.multiGrid, self.zero
         nextGrid.values, nextGrid.numTiles, nextGrid.gridValAvg, nextGrid.valStdDev = self.values, self.numTiles, self.gridValAvg, self.valStdDev
 
@@ -428,14 +426,13 @@ class Multigrid:
                     for b in range(-self.size, self.size+1):
                         t = self.multiGrid[r][a][s][b]
                         for vertex in  t.vertices:
+                            indexAsStr = f"{t.r} {t.a} {t.s} {t.b}"
                             if vertex in vertexToTileSet.keys():
                                 tileSet = vertexToTileSet.get(vertex)
-                                indexAsStr = "{} {} {} {}".format(t.r, t.a, t.s, t.b)
                                 tileSet.add(indexAsStr)
                                 vertexToTileSet.update({vertex : tileSet})
                             else:
                                 neighbourhoodSet = set()
-                                indexAsStr = "{} {} {} {}".format(t.r, t.a, t.s, t.b)
                                 neighbourhoodSet.add(indexAsStr)
                                 vertexToTileSet.update({vertex : neighbourhoodSet})
         setOfNeighbourhoodSets = vertexToTileSet.values()
@@ -539,6 +536,7 @@ class Multigrid:
             t2.setColor('red')
             t2.setStability(False)
             return
+
         t1neighbourValAvg = t1neighbourValTotal/len(t1.neighbourhood)
         bound = self.valToBound(t1neighbourValAvg)
         pc = self.boundToPC.get(bound)
@@ -546,6 +544,7 @@ class Multigrid:
         t2Val = t1.val + (t1neighbourValAvg - t1.val)*pc
         #t2Val = self.valRatio*t1.val + (1-self.valRatio)*t1neighbourValAvg
         t2Color = self.boundToCol.get(self.valToBound(t2Val))
+
         ## If the tile state has changed, all previously like-stated stable tiles are set to unstable
         if not self.boundaryApprox:
             if t2Color != t1.color:
@@ -583,7 +582,7 @@ class Multigrid:
     ## Grid Display Methods ##
     ##########################
     ## Display all tiles
-    def displayTiling(self, printImage=False):
+    def displayTiling(self):
         self.setFigExtras()
         self.patches = []
         colorList = sns.cubehelix_palette(self.numTileTypes, dark=0, light=0.8)
@@ -605,7 +604,7 @@ class Multigrid:
                             color = 'black'
                         # Background
                         elif abs(a)==self.size or abs(b)==self.size:
-                            if self.ptIndex != 0:
+                            if self.ptIndex > 0:
                                 bound = self.valToBound(self.gridValAvg)
                                 boundInd = self.bounds.index(bound)
                                 if bound == 0:
@@ -625,12 +624,15 @@ class Multigrid:
                             patch = mpatches.PathPatch(path, edgecolor = color, facecolor = color, alpha=self.alpha)
                         self.ax.add_patch(patch)
                         self.patches.append(patch)
+        if self.ptIndex==0:
+            return self.ax
     ## Display only boundaries
     def displayBoundaries(self):
         self.setFigExtras()
         #for stablePatch in self.stablePatches:
             #self.ax.add_patch(stablePatch)
         self.patches = []
+        ######## YOu can make it so that it does not need a sampColor, this reduces an extra valToBound and a few other extra calls
         for boundary in self.listOfBoundaryLists:
             samp = boundary[0]
             samp = self.multiGrid[samp[0]][samp[1]][samp[2]][samp[3]]
@@ -651,12 +653,15 @@ class Multigrid:
 
 
 
+
+
+
+
 ###################
 ## Local Running ##
 ###################
 def main():
     # dim up to 501 works for size = 1
-    start = timeit.timeit()
     dim = 5
     sC = 0
     size = 5
@@ -664,10 +669,10 @@ def main():
     tileOutline = False
     alpha = 1
     shiftZeroes, shiftRandom, shiftByHalves = True, False, False
-    multi = Multigrid(dim, sC, size, tileSize, shiftZeroes, shiftRandom, shiftByHalves, tileOutline, alpha, start)
+    multi = Multigrid(dim, sC, size, tileSize, shiftZeroes, shiftRandom, shiftByHalves, tileOutline, alpha, time.time())
     multi.genTiling()
     multi.genTileNeighbourhoods()
-    multi.displayTiling(printImage=True)
+    multi.displayTiling()
 
 if __name__ == '__main__':
     main()

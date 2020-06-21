@@ -1,26 +1,22 @@
-from multiprocessing import Pool
-
-
-## System
 import os
 import time
-## Operations
+
 import math
 import itertools
 import bisect
 import copy
-## Random
+
 import random as rd
-## Numpy
+
 import numpy as np
-## Matplotlib
+
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
 import matplotlib.patches as mpatches
-## Seaborn
+
 import seaborn as sns
 
-## Multigrid Cell Import
+## Local Imports
 from MultigridCell import MultigridCell
 
 

@@ -37,14 +37,11 @@ class MultigridList:
     ##################
     def __init__(self, dim, size, shiftVect=None, sC=0, shiftProp=(False,True,True),
                  minGen=8, maxGen=10, fitGen=10,
-                 numColors=10, numStates=100,
+                 numColors=10, manualCols=True, numStates=100,
                  isValued=True, initialValue=(True,False,False,False), valRatio=None,
                  isBoundaried=False, boundaryReMap=False, boundaryApprox=False,
                  gol=False, tileOutline=False, alpha=1, overide=False):
         
-        ## Clear and init file space
-        self.initFileSpace(cleaning=True, selectiveSpace=False, trashSpace=True)
-
         ## Animation on
         self.animating = True
         ## Early animation exit param
@@ -61,7 +58,7 @@ class MultigridList:
         self.minGen, self.maxGen, self.fitGen = minGen, maxGen, fitGen
 
         ## States and colors
-        self.numStates, self.numColors = numStates, numColors
+        self.numStates, self.numColors, self.manualCols = numStates, numColors, manualCols
 
         ## State value settings
         self.isValued, self.initialValue, self.valRatio = isValued, initialValue, valRatio
@@ -141,17 +138,6 @@ class MultigridList:
         #if self.numTilings > 1:
         #    self.multigridList[self.ptIndex-2].fig.clf()
         #    self.multigridList[self.ptIndex-2].ax.cla()
-
-    def initFileSpace(self, cleaning, selectiveSpace=False, trashSpace=False):
-        if cleaning:
-            if selectiveSpace:
-                files = glob.glob('MultigridListData/*')
-                for f in files:
-                    shutil.rmtree(f)
-            if trashSpace:
-                tFiles = glob.glob('TrashLists/*')
-                for tF in tFiles:
-                    shutil.rmtree(tF)
 
     ########################################
     ## Update Methods For Animation Cycle ##
@@ -304,8 +290,12 @@ class MultigridList:
         yield StopIteration
 
     def genColors(self):
-        self.colors = None
-        if self.numColors < 19:
+        if self.manualCols or self.numColors>19:
+            ## Manually create colors
+            # (hue, saturation, value)
+            hsvCols = [(x/self.numColors, 1, 0.75) for x in range(self.numColors)]
+            self.colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsvCols))
+        else:
             ## Classic colors
             self.colors = sns.color_palette("bright", self.numColors)
             #self.colors = sns.color_palette("husl", self.numColors)
@@ -317,23 +307,19 @@ class MultigridList:
 
             ## Gradient colors
             #self.colors = sns.cubehelix_palette(self.numColors, dark=0.1, light=0.9)
-        else:
-            ## Manually create colors
-            # (hue, saturation, value)
-            hsvCols = [(x/self.numColors, 1, 0.75) for x in range(self.numColors)]
-            self.colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsvCols))
 
     def genDirectoryPaths(self):
         ## rootPath and path data
-        self.rootPath = 'MultigridListData/'
+        filePath = os.path.realpath(__file__)
+        self.rootPath = filePath.replace('src/MultigridList.py', '/outputData/fitMultigridData/')
         self.multigridListInd = str(rd.randrange(0, 2000000000))
         self.gridPath = f'listInd{self.multigridListInd}/'
         ## localPaths
         self.localPath = self.rootPath + self.gridPath
-        self.localTrashPath = self.localPath.replace('MultigridListData', 'TrashLists')
+        self.localTrashPath = self.localPath.replace('fitMultigridData', 'unfitMultigridData')
         ## gifPaths
         self.gifPath = f'{self.localPath}listInd{self.multigridListInd[0:3]}Animation.gif'
-        self.gifTrashPath = self.gifPath.replace('MultigridListData', 'TrashLists')
+        self.gifTrashPath = self.gifPath.replace('fitMultigridData', 'unfitMultigridData')
         ## stabilityPaths
         self.stabilityPath, self.stabilityTrashPath = self.genPngPaths('stabilityStats')
         ## boundaryFigPaths
@@ -347,7 +333,7 @@ class MultigridList:
 
     def genPngPaths(self, pngName):
         pngPath = f'{self.localPath}listInd{self.multigridListInd[0:3]}{pngName}.png'
-        return pngPath, pngPath.replace('MultigridListData', 'TrashLists')
+        return pngPath, pngPath.replace('fitMultigridData', 'unfitMultigridData')
 
     def genBounds(self):
         sampleDef = 1000
@@ -467,7 +453,7 @@ class MultigridList:
             self.saveColorCompFig()
             self.saveNormColCompFig()
         ## Relocate fit tilings
-        if self.ptIndex >= self.fitGen:
+        if self.ptIndex > self.fitGen:
             files = glob.glob(self.localTrashPath)
             for f in files:
                 shutil.move(f, self.localPath)
@@ -509,6 +495,18 @@ class MultigridList:
 
 
 
+def cleanFileSpace(cleaning, fitClean=False, unfitClean=False):
+    filePath = os.path.realpath(__file__)
+    rootPath = filePath.replace('src/MultigridList.py', '/outputData/')
+    if cleaning:
+        if fitClean:
+            files = glob.glob(f'{rootPath}fitMultigridData/*')
+            for f in files:
+                shutil.rmtree(f)
+        if unfitClean:
+            tFiles = glob.glob(f'{rootPath}unfitMultigridData/*')
+            for tF in tFiles:
+                shutil.rmtree(tF)
 
 
 ###############################
@@ -520,9 +518,11 @@ def main():
     # Enable profiling
     #p.enable()
 
+    cleanFileSpace(True, fitClean=False, unfitClean=True)
+
     dim = 5
     sC = 1/2
-    size = 9
+    size = 5
     tileOutline = True
     alpha = 1
     shiftZeroes, shiftRandom, shiftByHalves = False, True, False
@@ -533,17 +533,18 @@ def main():
     #valuedRandomly, valuedByDim, valuedBySize, valuedByTT = False, False, True, False
 
     numColors = 100
+    manualCols = True
     numStates = 1000
 
     minGen = 20
     maxGen = 20
-    fitGen = 40
+    fitGen = 21
 
     ## You can use this to overide any non properly tiled tilings
     shiftVect = None
 
-    isBoundaried = True
-    boundaryReMap = False
+    isBoundaried = False
+    boundaryReMap = True
     ## Setting boundary approx trades time complexity for calculating the exact tiling
     ## Setting boundaryApprox as True improves time complexity and gives tiling approximation
     boundaryApprox = False
@@ -559,7 +560,7 @@ def main():
     for _ in range(numIterations):
         MultigridList(dim, size, shiftVect, sC=sC, shiftProp=shiftProp,
                       minGen=minGen, maxGen=maxGen, fitGen=fitGen,
-                      numColors=numColors, numStates=numStates,
+                      numColors=numColors, manualCols=manualCols, numStates=numStates,
                       isValued=True, initialValue=initialValue, valRatio=0.5,
                       isBoundaried=isBoundaried, boundaryReMap=boundaryReMap, boundaryApprox=boundaryApprox,
                       gol=gol, tileOutline=tileOutline, alpha=alpha, overide=overide)

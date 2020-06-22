@@ -258,9 +258,7 @@ class Multigrid:
                     for b in range(-self.size, self.size+1):
 
                         tileType = self.ttm[r][s]
-                        color = self.colors[tileType]
                         
-
                         p_rs_ab = MultigridCell(self.dim, r, s, a, b, self.shiftVect[r], self.shiftVect[s], tileType)
                         p_rs_ab.setStability(False)
 
@@ -279,7 +277,6 @@ class Multigrid:
                         ## Game Of Life
                         if self.gol:
                             rand=rd.randrange(0, 3)
-                            val, tileColor = 0, ''
                             if rand==0:
                                 p_rs_ab.setColor('black')
                                 p_rs_ab.setVal(1)
@@ -290,7 +287,7 @@ class Multigrid:
                                 self.values.append(0)
                         ## If the grid is not valued, value defaults to the tile type
                         elif not self.isValued:
-                            p_rs_ab.setColor(color)
+                            p_rs_ab.setColor(self.boundToCol.get(tileType+1))
                             p_rs_ab.setVal(tileType)
                             self.values.append(tileType)
                         ## Randomly Valued
@@ -331,8 +328,7 @@ class Multigrid:
                             sampleDef = 1000
                             val=rd.randrange(tileType, (tileType+1)*sampleDef)/sampleDef
                             ## In order to avoid 0 and 1 being in same bound, add 1.
-                            tileColor = color
-                            p_rs_ab.setColor(tileColor)
+                            p_rs_ab.setColor(self.boundToCol.get(tileType+1))
                             p_rs_ab.setVal(val)
                             self.values.append(val)
                         ## Why do I need to do this?
@@ -372,18 +368,18 @@ class Multigrid:
                     for s in range(r+1, self.dim):
                         for b in range(-self.size, self.size+1):
                             oldTile = self.multiGrid[r][a][s][b]
-                            t2 = nextGrid.multiGrid[r][a][s][b]
-                            t2.neighbourhood = oldTile.neighbourhood
-                            self.genNextTile(oldTile, t2)
+                            newTile = nextGrid.multiGrid[r][a][s][b]
+                            newTile.neighbourhood = oldTile.neighbourhood
+                            self.genNextTile(oldTile, newTile)
         ## Iterate over the unstable tiles
         else:
             prevUnstableTiles = self.unstableTiles
             self.unstableTiles = []
             for tInd in prevUnstableTiles:
                 oldTile = self.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
-                t2 = nextGrid.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
-                t2.neighbour = oldTile.neighbourhood
-                self.genNextTile(oldTile, t2)
+                newTile = nextGrid.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
+                newTile.neighbour = oldTile.neighbourhood
+                self.genNextTile(oldTile, newTile)
 
                 
         self.unstableTiles = list(set(self.unstableTiles))
@@ -409,15 +405,15 @@ class Multigrid:
             return nextGrid, self.ax
         return nextGrid
 
-    def genNextTile(self, oldTile, t2):
+    def genNextTile(self, oldTile, newTile):
         ## This makes sure we do not divide by zero later
-        if len(t2.neighbourhood) == 0:
-            t2.setColor('red')
+        if len(newTile.neighbourhood) == 0:
+            newTile.setColor('red')
             self.values.append(oldTile.val)
         elif self.gol:
-            self.updateTileValsGOL(oldTile, t2)
+            self.updateTileValsGOL(oldTile, newTile)
         else:
-            self.updateTileVals(oldTile, t2)
+            self.updateTileVals(oldTile, newTile)
         if type(oldTile.color) is list:
             col = tuple(oldTile.color)
         col = tuple(oldTile.color) if type(oldTile.color) is list else oldTile.color
@@ -532,7 +528,7 @@ class Multigrid:
     ## Tile Value Updates ##
     ########################
     ## For the merge algorithm
-    def updateTileVals(self, oldTile, t2):
+    def updateTileVals(self, oldTile, newTile):
         oldTileindex = (oldTile.r, oldTile.a, oldTile.s, oldTile.b)
         oldTileneighbourValTotal = 0
         oldTileisStable = True
@@ -556,19 +552,19 @@ class Multigrid:
         bound = self.valToBound(oldTileneighbourValAvg)
         pc = self.boundToPC.get(bound)
         # This makes it the merge method
-        t2Val = oldTile.val + (oldTileneighbourValAvg - oldTile.val)*pc
-        #t2Val = self.valRatio*oldTile.val + (1-self.valRatio)*oldTileneighbourValAvg
-        t2Color = self.boundToCol.get(self.valToBound(t2Val))
+        newTileVal = oldTile.val + (oldTileneighbourValAvg - oldTile.val)*pc
+        #newTileVal = self.valRatio*oldTile.val + (1-self.valRatio)*oldTileneighbourValAvg
+        newTileColor = self.boundToCol.get(self.valToBound(newTileVal))
 
         ## If the tile state has changed, all previously like-stated stable tiles are set to unstable
         if not self.boundaryApprox:
-            if t2Color != oldTile.color:
+            if newTileColor != oldTile.color:
                 for neighbour in oldTile.neighbourhood:
                     self.unstableTiles.append(tuple(neighbour))
-        t2.setVal(t2Val)
-        t2.setColor(t2Color)
+        newTile.setVal(newTileVal)
+        newTile.setColor(newTileColor)
     ## For the GOL algorithm
-    def updateTileValsGOL(self, oldTile, t2):
+    def updateTileValsGOL(self, oldTile, newTile):
         oldTileneighbourValTotal = 0
         for neighbour in oldTile.neighbourhood:
             n = self.multiGrid[neighbour[0]][neighbour[1]][neighbour[2]][neighbour[3]]
@@ -582,11 +578,11 @@ class Multigrid:
             oldTile.setStability(False)
             self.unstableTiles.append(oldTileindex)
         if (oldTileneighbourValTotal+oldTile.val > 4) and (oldTileneighbourValTotal+oldTile.val  < 7):
-            t2.setVal(1)
-            t2.setColor('black')
+            newTile.setVal(1)
+            newTile.setColor('black')
         else:
-            t2.setVal(0)
-            t2.setColor('white')
+            newTile.setVal(0)
+            newTile.setColor('white')
         
     ##########################
     ## Grid Display Methods ##

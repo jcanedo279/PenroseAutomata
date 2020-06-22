@@ -11,6 +11,8 @@ import datetime
 
 import itertools
 
+import colorsys
+
 import random as rd
 
 import numpy as np
@@ -33,9 +35,12 @@ class MultigridList:
     ##################
     ## Init Methods ##
     ##################
-    def __init__(self, dim, sC, size, tileSize, shiftProperties, tileOutline, alpha, numColors, minGen, maxGen, fitGen,
-                 isValued=True, initialValue=(True, False, False, False), valRatio=None, numStates=None,
-                 gol=False, overide=False, isBoundaried=False, boundaryReMap=False, boundaryApprox=True, shiftVect=None):
+    def __init__(self, dim, size, shiftVect=None, sC=0, shiftProp=(False,True,True),
+                 minGen=8, maxGen=10, fitGen=10,
+                 numColors=10, numStates=100,
+                 isValued=True, initialValue=(True,False,False,False), valRatio=None,
+                 isBoundaried=False, boundaryReMap=False, boundaryApprox=False,
+                 gol=False, tileOutline=False, alpha=1, overide=False):
         
         ## Clear and init file space
         self.initFileSpace(cleaning=True, selectiveSpace=False, trashSpace=True)
@@ -47,58 +52,47 @@ class MultigridList:
 
         ## Constant grid parameters
         self.startTime = time.time()
-        self.dim, self.sC, self.size = dim, sC, size
-        self.tileSize = tileSize
-        self.shiftZeroes, self.shiftRandom, self.shiftByHalves = shiftProperties
-        self.shiftVect=shiftVect
-        self.tileOutline, self.alpha = tileOutline, alpha
 
-        self.numTilesInGrid = (math.factorial(self.dim)/(2*(math.factorial(self.dim-2))))*((2*self.size+1)**2)
+        self.dim, self.size, self.sC = dim, size, sC
+        self.shiftVect=shiftVect
+        self.shiftZeroes, self.shiftRandom, self.shiftByHalves = shiftProp
+
+        ## Generation counters
+        self.minGen, self.maxGen, self.fitGen = minGen, maxGen, fitGen
 
         ## States and colors
-        self.numStates = numStates
-        self.numColors = numColors
-
-        ## Classic colors
-        #self.colors = sns.color_palette("bright", self.numColors)
-        self.colors = sns.color_palette("husl", self.numColors)
-        #self.colors = sns.color_palette("cubehelix", self.numColors)
-
-        ## Divergent colors
-        #self.colors = sns.color_palette("BrBG", self.numColors)
-        #self.colors = sns.color_palette("coolwarm", self.numColors)
-
-        ## Gradient colors
-        #self.colors = sns.cubehelix_palette(self.numColors, dark=0.1, light=0.9)
+        self.numStates, self.numColors = numStates, numColors
 
         ## State value settings
-        self.isValued = isValued
-        self.initialValue = initialValue
-        self.valRatio=valRatio
+        self.isValued, self.initialValue, self.valRatio = isValued, initialValue, valRatio
 
         ## Boundary variables
-        self.isBoundaried = isBoundaried
-        self.boundaryReMap = boundaryReMap
-        self.boundaryApprox = boundaryApprox
+        self.isBoundaried, self.boundaryReMap, self.boundaryApprox = isBoundaried, boundaryReMap, boundaryApprox
+
+        ## Game of life gamemode
+        self.gol = gol
+        self.tileOutline, self.alpha, = tileOutline, alpha
+        self.overide = overide
+
+        ## The number of tiles in this grid
+        self.numTilesInGrid = (math.factorial(self.dim)/(2*(math.factorial(self.dim-2))))*((2*self.size+1)**2)
+
+        ## Do not mess with this
+        self.tileSize = 10
+
+        ## Choose a color scheme
+        self.genColors()
+
+        ## Keep track of stability
         self.percentStableRepeatCount = 0
         self.prevPercentStable = 1
 
+        ## Generate lists used to keep track of statistics
         self.percentStables, self.percentUnstables, self.percentTotals = [], [], []
         self.normPercentStables, self.normPercentUnstables = [], []
         self.numBoundaries, self.numUnstable = [], []
         self.valAvgs, self.valStdDevs = [], []
         self.colValDicts = []
-
-        ## Generation counters
-        self.minGen = minGen
-        self.maxGen = maxGen
-        self.fitGen = fitGen
-
-        ## Misc
-        self.overide = overide
-
-        ## Game of life boolean
-        self.gol = gol
 
         ## Generate directory names and paths
         self.genDirectoryPaths()
@@ -116,12 +110,14 @@ class MultigridList:
         self.multigridList = []
 
         ## Create and animate original tiling
-        self.currentGrid = Multigrid(self.dim, self.size, sC=self.sC, tileSize=self.tileSize, shiftProperties=shiftProperties,
-                            tileOutline=self.tileOutline, alpha=self.alpha, rootPath=self.localTrashPath,
-                            isValued=self.isValued, initialValue=self.initialValue,
-                            bounds=self.bounds, boundToCol=self.boundToCol, boundToPC=self.boundToPC, boundaryApprox=self.boundaryApprox,
-                            ptIndex=self.ptIndex, valRatio=self.valRatio, numStates=self.numStates, colors=self.colors,
-                            gol=self.gol, isBoundaried=isBoundaried, shiftVect=self.shiftVect, numTilesInGrid=self.numTilesInGrid)
+        self.currentGrid = Multigrid(self.dim, self.size, shiftVect=self.shiftVect, sC=self.sC, shiftProp=shiftProp,
+                                     numTilesInGrid=self.numTilesInGrid,
+                                     startTime=self.startTime, rootPath=self.localTrashPath, ptIndex=self.ptIndex, 
+                                     numStates=self.numStates, colors=self.colors,
+                                     isValued=self.isValued, initialValue=self.initialValue,  valRatio=self.valRatio,
+                                     boundToCol=self.boundToCol, boundToPC=self.boundToPC,
+                                     isBoundaried=isBoundaried, bounds=self.bounds, boundaryApprox=self.boundaryApprox,
+                                     gol=self.gol, tileOutline=self.tileOutline, alpha=self.alpha)
 
         if self.animating:
             self.animatingFigure = plt.figure()
@@ -190,19 +186,19 @@ class MultigridList:
             self.normPercentUnstables.append(origGrid.normPercentUnstable)
             self.valAvgs.append(origGrid.valAvg)
             self.valStdDevs.append(origGrid.valStdDev)
-            self.colValDicts.append(origGrid.colorValDict)
+            self.colValDicts.append(origGrid.colValDict)
 
             if self.isBoundaried:
                 self.numBoundaries.append(nextGrid.numBoundaries)
                 self.numUnstable.append(len(origGrid.unstableTiles))
                 if self.ptIndex==1:
                     self.origNumBoundaries = nextGrid.numBoundaries
-            if self.isBoundaried and (self.ptIndex > 1):
-                if nextGrid.numBoundaries/self.origNumBoundaries == self.prevPercentStable:
-                    self.percentStableRepeatCount += 1
-                else:
-                    self.percentStableRepeatCount = 0
-                self.prevPercentStable = nextGrid.numBoundaries/self.origNumBoundaries
+            #if self.isBoundaried and (self.ptIndex > 1):
+                #if nextGrid.numBoundaries/self.origNumBoundaries == self.prevPercentStable:
+                    #self.percentStableRepeatCount += 1
+                #else:
+                    #self.percentStableRepeatCount = 0
+                #self.prevPercentStable = nextGrid.numBoundaries/self.origNumBoundaries
                 #print(nextGrid.numBoundaries/self.origNumBoundaries, origGrid.numBoundaries, self.percentStableRepeatCount)
             ## Stop the animation before maxGen
             if self.ptIndex < self.minGen:
@@ -266,10 +262,6 @@ class MultigridList:
             print('   --The gamemode is set to GOL, yet isBoundaries=True')
             print('     isBoudnaried defaulted to False')
             self.isBoundaried=False
-        if self.initialValue[0] and self.dim<11:
-            print('         --he initial value condition of the space is a function of the tile type, itself a function of dim,')
-            print(f"          which in this case is '{self.dim}' < 11.")
-            print('          Please keep in mind that tileType ~dim/2. In order to increase complexity, try increasing dim to 11 or more')
         if self.initialValue[1] and self.dim<7:
             print(f"        --The initial value condition of the space is a function of dim, which in this case is '{self.dim}' < 7")
             print('          In order to increase complexity, try increasing dim to 7 or more (preferably 15+)')
@@ -277,6 +269,10 @@ class MultigridList:
             print(f"        --The initial value condition of the space is a function of size, which in this case is '{self.size}' < 5")
             print('          Please keep in mind that part of the space may not be playable (ie the background).  In order to imcrease complexity,')
             print('          try increasing size to 5 or more (note that size is more than twice as costly as dimmension)')
+        if self.initialValue[3] and self.dim<11:
+            print('         --The initial value condition of the space is a function of the tile type, itself a function of dim,')
+            print(f"          which in this case is '{self.dim}' < 11.")
+            print('          Please keep in mind that tileType ~dim/2. In order to increase complexity, try increasing dim to 11 or more')
         if self.initialValue[1]:
             print('-valuedByDim detected, numColors defaulted to dim')
             self.numColors = self.dim
@@ -306,6 +302,26 @@ class MultigridList:
             self.ax.cla()
             yield self.ptIndex
         yield StopIteration
+
+    def genColors(self):
+        self.colors = None
+        if self.numColors < 19:
+            ## Classic colors
+            self.colors = sns.color_palette("bright", self.numColors)
+            #self.colors = sns.color_palette("husl", self.numColors)
+            #self.colors = sns.color_palette("cubehelix", self.numColors)
+
+            ## Divergent colors
+            #self.colors = sns.color_palette("BrBG", self.numColors)
+            #self.colors = sns.color_palette("coolwarm", self.numColors)
+
+            ## Gradient colors
+            #self.colors = sns.cubehelix_palette(self.numColors, dark=0.1, light=0.9)
+        else:
+            ## Manually create colors
+            # (hue, saturation, value)
+            hsvCols = [(x/self.numColors, 1, 0.75) for x in range(self.numColors)]
+            self.colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsvCols))
 
     def genDirectoryPaths(self):
         ## rootPath and path data
@@ -505,18 +521,18 @@ def main():
     #p.enable()
 
     dim = 5
-    sC = 0 
-    size = 19
+    sC = 1/2
+    size = 9
     tileOutline = True
-    alpha = 0.8
+    alpha = 1
     shiftZeroes, shiftRandom, shiftByHalves = False, True, False
-    shiftProperties = (shiftZeroes, shiftRandom, shiftByHalves)
+    shiftProp = (shiftZeroes, shiftRandom, shiftByHalves)
 
     ## valuedRandomly, valuedByDim, valuedBySize, valuedByTT
-    initialValue = (False, True, False, False)
+    initialValue = (True, False, False, False)
     #valuedRandomly, valuedByDim, valuedBySize, valuedByTT = False, False, True, False
 
-    numColors = 20
+    numColors = 100
     numStates = 1000
 
     minGen = 20
@@ -527,7 +543,7 @@ def main():
     shiftVect = None
 
     isBoundaried = True
-    boundaryReMap = True
+    boundaryReMap = False
     ## Setting boundary approx trades time complexity for calculating the exact tiling
     ## Setting boundaryApprox as True improves time complexity and gives tiling approximation
     boundaryApprox = False
@@ -538,15 +554,15 @@ def main():
     ## Overide ensures maxGen generations
     overide = False
 
-    ## This is the tileSize, dont mess around with this a lot
-    tileSize = 10
-
 
     numIterations = 1
     for _ in range(numIterations):
-        MultigridList(dim, sC, size, tileSize, shiftProperties, tileOutline, alpha, numColors, minGen, maxGen, fitGen,
-                      isValued=True, initialValue=initialValue, valRatio=0.5, numStates=numStates,
-                      gol=gol, overide=overide, isBoundaried=isBoundaried, boundaryReMap=boundaryReMap, boundaryApprox=boundaryApprox, shiftVect=shiftVect)
+        MultigridList(dim, size, shiftVect, sC=sC, shiftProp=shiftProp,
+                      minGen=minGen, maxGen=maxGen, fitGen=fitGen,
+                      numColors=numColors, numStates=numStates,
+                      isValued=True, initialValue=initialValue, valRatio=0.5,
+                      isBoundaried=isBoundaried, boundaryReMap=boundaryReMap, boundaryApprox=boundaryApprox,
+                      gol=gol, tileOutline=tileOutline, alpha=alpha, overide=overide)
 
     #p.disable()
     #p.print_stats()
@@ -559,4 +575,6 @@ if __name__ == '__main__':
 
 
 
-##### IF THE DIM IS EVEN, EACH ITERATION ITERATES OVER AN INVALID GRID INTERSECTION, THATS WHY WE GET SOME LINES NOT RHOMBS I THINK
+## TODO: If dim is eve, each iteration over multigrid has two not one invalid tilings, thats why we get some lines and not rhombs i think
+## TODO: Fix shiftVect
+## TODO: Fix tile type

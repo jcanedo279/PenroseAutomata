@@ -32,7 +32,7 @@ class Multigrid:
                 isValued=True, initialValue=(True,False,False,False), valRatio=None,
                 boundToCol=None, boundToPC=None,
                 isBoundaried=False, bounds=None, boundaryApprox=True,
-                gol=False, tileOutline=False, alpha=1):
+                gol=False, tileOutline=False, alpha=1, printGen=0):
         
         ## Multigrid object and instantiate its constant parameters
         self.dim, self.size, self.sC = dim, size, sC
@@ -53,6 +53,7 @@ class Multigrid:
         self.pathPng = self.rootPath + self.gridPath
         ## Penrose tile index
         self.ptIndex = ptIndex
+        self.printGen = printGen
 
         ## Number of states and color maps
         self.numStates, self.colors = numStates, colors
@@ -252,12 +253,14 @@ class Multigrid:
             #colors = sns.cubehelix_palette(self.numTileTypes, dark=0.1, light=0.9)
         self.multiGrid = [[[[None for b in range(-self.size, self.size+1)] for s in range(self.dim)] for a in range(-self.size, self.size+1)] for r in range(self.dim)]
         self.values = []
+        self.allTiles = []
         for r in range(self.dim):
             for a in range(-self.size, self.size+1):
                 for s in range(r+1, self.dim):
                     for b in range(-self.size, self.size+1):
 
                         tileType = self.ttm[r][s]
+                        self.allTiles.append(tuple([r, a, s, b]))
                         
                         p_rs_ab = MultigridCell(self.dim, r, s, a, b, self.shiftVect[r], self.shiftVect[s], tileType)
                         p_rs_ab.setStability(False)
@@ -353,9 +356,10 @@ class Multigrid:
                             isValued=self.isValued, initialValue=self.initialValue, valRatio=self.valRatio,
                             boundToCol=self.boundToCol, boundToPC=self.boundToPC,
                             isBoundaried=self.isBoundaried, bounds=self.bounds, boundaryApprox=self.boundaryApprox,
-                            gol=self.gol, tileOutline=self.tileOutline, alpha=self.alpha)
+                            gol=self.gol, tileOutline=self.tileOutline, alpha=self.alpha, printGen=None)
         nextGrid.multiGrid, nextGrid.zero = self.multiGrid, self.zero
         nextGrid.values, nextGrid.numTiles, nextGrid.gridValAvg, nextGrid.valStdDev = self.values, self.numTiles, self.gridValAvg, self.valStdDev
+        nextGrid.printGen = self.printGen
 
         self.values = []
         self.colValDict = {}
@@ -390,11 +394,14 @@ class Multigrid:
             nextGrid.unstableTiles = self.unstableTiles
             self.addToStablePatch(self.stableTiles)
         nextGrid.stablePatches = self.stablePatches
+
         if boundaried:
             nextGrid.genBoundaryList()
-            nextGrid.displayBoundaries()
+            if self.ptIndex >= self.printGen:
+                nextGrid.displayBoundaries()
         else:
-            nextGrid.displayTiling()
+            if self.ptIndex >= self.printGen:
+                nextGrid.displayTiling()
         self.percentStable = self.numStable/self.numTilesInGrid
         self.percentUnstable = self.numUnstable/self.numTilesInGrid
         self.totalPercent = (self.numStable + self.numUnstable)/self.numTilesInGrid
@@ -577,7 +584,7 @@ class Multigrid:
         else:
             oldTile.setStability(False)
             self.unstableTiles.append(oldTileindex)
-        if (oldTileneighbourValTotal+oldTile.val > 4) and (oldTileneighbourValTotal+oldTile.val  < 7):
+        if (oldTileneighbourValTotal+oldTile.val > 3) and (oldTileneighbourValTotal+oldTile.val  < 5):
             newTile.setVal(1)
             newTile.setColor('black')
         else:
@@ -650,12 +657,25 @@ class Multigrid:
                 t = self.multiGrid[index[0]][index[1]][index[2]][index[3]]
                 color = sampColor
                 path = self.genPath(t.vertices)
-                if self.tileOutline:
-                    patch = mpatches.PathPatch(path, edgecolor = None, facecolor = color, alpha=self.alpha)
-                else:
-                    patch = mpatches.PathPatch(path, edgecolor = color, facecolor = color, alpha=self.alpha)
+                patch = mpatches.PathPatch(path, edgecolor = None, facecolor = color, alpha=self.alpha) if self.tileOutline else mpatches.PathPatch(path, edgecolor = color, facecolor = color, alpha=self.alpha)
                 self.ax.add_patch(patch)
                 self.patches.append(patch)
+    
+    def selectiveDisplay(self, backgroundCol, selection, selectionCol):
+        for tInd in self.allTiles:
+            t = self.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
+            path = self.genPath(t.vertices)
+            tCol = selectionCol if tInd in selection else backgroundCol
+            patch = mpatches.PathPatch(path, edgecolor = None, facecolor = tCol, alpha=self.alpha)
+            self.ax.add_patch(patch)
+            self.patches.append(patch)
+        return self.ax
+
+
+
+    def saveFigure(self):
+        figPath = f'{self.rootPath}gen{self.ptIndex}.png'
+        plt.savefig(figPath)
 
 
 

@@ -42,7 +42,8 @@ class MultigridList:
                  numColors=10, manualCols=True, numStates=100,
                  isValued=True, initialValue=(True,False,False,False), valRatio=None,
                  isBoundaried=False, boundaryReMap=False, boundaryApprox=False,
-                 gol=False, tileOutline=False, alpha=1, overide=False, printGen=0):
+                 gol=False, tileOutline=False, alpha=1, overide=False, printGen=0,
+                 invalidSet=set(), invalidColor='purple', dispBorder=False, dispInvalid=True):
         
 
         ## Animation on
@@ -59,8 +60,7 @@ class MultigridList:
         self.shiftZeroes, self.shiftRandom, self.shiftByHalves = shiftProp
 
         ## Generation counters
-        self.minGen, self.maxGen, self.fitGen = minGen, maxGen, fitGen
-        self.printGen = printGen
+        self.minGen, self.maxGen, self.fitGen, self.printGen = minGen, maxGen, fitGen, printGen
 
         ## States and colors
         self.numStates, self.numColors, self.manualCols = numStates, numColors, manualCols
@@ -81,6 +81,11 @@ class MultigridList:
 
         ## Do not mess with this
         self.tileSize = 10
+
+        self.invalidSet = invalidSet
+        self.invalidColor = invalidColor
+        self.dispBorder = dispBorder
+        self.dispInvalid = dispInvalid
 
         ## Parameter Safety Check
         self.parameterSafetyCheck()
@@ -119,7 +124,8 @@ class MultigridList:
                                      isValued=self.isValued, initialValue=self.initialValue,  valRatio=self.valRatio,
                                      boundToCol=self.boundToCol, boundToPC=self.boundToPC,
                                      isBoundaried=isBoundaried, bounds=self.bounds, boundaryApprox=self.boundaryApprox,
-                                     gol=self.gol, tileOutline=self.tileOutline, alpha=self.alpha, printGen=self.printGen)
+                                     gol=self.gol, tileOutline=self.tileOutline, alpha=self.alpha, printGen=self.printGen,
+                                     invalidSet=self.invalidSet, invalidColor=self.invalidColor, dispBorder=self.dispBorder, dispInvalid=self.dispInvalid)
 
         if self.animating:
             self.animatingFigure = plt.figure()
@@ -128,12 +134,13 @@ class MultigridList:
 
             self.anim = FuncAnimation(self.animatingFigure, self.updateAnimation, frames=self.genFrames, init_func=self.initPlot(), repeat=False)
             self.updateDir(self.currentGrid.shiftVect)
+            self.saveTilingInfo()
+            print(f'Grids 0-{self.ptIndex-1} Completed succesfully')
 
             lim = 10
             bound = lim*(self.size+self.dim-1)**1.2
             self.ax.set_xlim(-bound + self.currentGrid.zero[0], bound + self.currentGrid.zero[0])
             self.ax.set_ylim(-bound + self.currentGrid.zero[1], bound + self.currentGrid.zero[1])
-            self.saveTilingInfo()
         else:
             self.multigridList.append(self.currentGrid)
             self.tilingIter(self.currentGrid)
@@ -160,10 +167,12 @@ class MultigridList:
 
     def updateAnimation(self, i):
         if self.ptIndex==0:
-            self.currentGrid.genTiling()
-            print('Original tile generated')
+            self.currentGrid.genTilingVerts()
+            print('Tile vertices generated')
             self.currentGrid.genTileNeighbourhoods()
             print('Tile neighbourhood generated')
+            self.currentGrid.genTiling()
+            print('Original tile populated')
             axis = self.currentGrid.displayTiling()
             self.origAx = axis
         else:
@@ -209,7 +218,7 @@ class MultigridList:
             shifts = [str(round(i,1)) for i in self.currentGrid.shiftVect]
             title = f'n={self.dim}, size={self.size}, sC={self.sC}, sV=[{shifts[0]}, ..., {shifts[self.dim-1]}], gen={self.ptIndex}'
             self.ax.set_title(title)
-        print(f'Grid {self.ptIndex} complete')
+        print(f'Grid {self.ptIndex} complete', end='\r')
         self.ptIndex += 1
         return axis
 
@@ -420,7 +429,7 @@ class MultigridList:
         x = [str(i) for i in range(len(self.numBoundaries))]
         boundaryFig.add_trace(go.Scatter(x=x, y=self.numBoundaries, name='number of boundaries', line=dict(color='firebrick', width=4)))
         boundaryFig.add_trace(go.Scatter(x=x, y=self.numUnstable, name='number of unstable tiles', line=dict(color='royalblue', width=4)))
-        boundaryFig.update_layout(title='Boundary Stats vs. Tile Generation',
+        boundaryFig.update_layout(title=f'Boundary Stats vs. Tile Generation             totalNumTiles @{self.numTilesInGrid}',
                                   xaxis_title='tile Index',
                                   yaxis_title='number of tiles/boundaries')
         boundaryFig.write_image(self.boundaryTrashPath)
@@ -429,7 +438,7 @@ class MultigridList:
         x = [str(i) for i in range(len(self.valAvgs))]
         valFig.add_trace(go.Scatter(x=x, y=self.valAvgs, name='grid value average', line=dict(color='firebrick', width=4)))
         valFig.add_trace(go.Scatter(x=x, y=self.valStdDevs, name='grid value std. dev.', line=dict(color='royalblue', width=4)))
-        valFig.update_layout(title=f'Value Stats vs. Tile Generation',
+        valFig.update_layout(title=f'Value Stats vs. Tile Generation             numStates @{self.numStates}',
                                   xaxis_title='tile Index',
                                   yaxis_title='statistic value')
         valFig.write_image(self.valTrashPath)
@@ -483,7 +492,7 @@ class MultigridList:
         avgGenDiffsFig = go.Figure()
         avgGenDiffx = [str(i) for i in range(len(self.colValDicts)-1)]
         avgGenDiffsFig.add_trace(go.Scatter(x=avgGenDiffx, y=avgGenDiffs, name=f'avgColDiff', line=dict(color=f'black', width=4)))
-        avgGenDiffsFig.update_layout(title='Average generational population size change for all colors',
+        avgGenDiffsFig.update_layout(title='Derivative of average color composition',
                                      xaxis_title='tile index',
                                      yaxis_title='average change')
         avgGenDiffsFig.write_image(self.avgGenDiffsTrashPath)
@@ -495,6 +504,7 @@ class MultigridList:
                     'isValued':self.isValued, 'initialValue':self.initialValue, 'valRatio':self.valRatio,
                     'isBoundaried':self.isBoundaried, 'boundaryReMap':self.boundaryReMap, 'boundaryApprox':self.boundaryApprox,
                     'gol':self.gol, 'tileOutline':self.tileOutline, 'alpha':self.alpha, 'overide':self.overide,
+                    'boundToPC':self.boundToPC,
                     'boundToCol':self.boundToCol, 'boundToKeyCol':self.boundToKeyCol, 'colors':self.colors
                    }
         with open(self.detailedInfoTrashPath, 'w') as file:
@@ -514,6 +524,7 @@ class MultigridList:
             avgGen = totalAvgGen / (len(self.colors)-1)
             avgGens.append(avgGen)
         return avgGens
+    ## The derivative of the average color composition
     def genColGenDiffs(self):
         avgGenDiffs = []
         for tilingInd in range(1, len(self.colValDicts)):
@@ -521,18 +532,15 @@ class MultigridList:
             for color in self.colors:
                 color = tuple(color) if type(color) is list else color
                 if color in self.colValDicts[tilingInd] and color in self.colValDicts[tilingInd-1]:
-                    totalGenDiff += self.colValDicts[tilingInd].get(color) - self.colValDicts[tilingInd-1].get(color)
+                    totalGenDiff += -(self.colValDicts[tilingInd].get(color) - self.colValDicts[tilingInd-1].get(color))
                 elif color in self.colValDicts[tilingInd-1]:
-                    totalGenDiff += -self.colValDicts[tilingInd-1].get(color)
+                    totalGenDiff += self.colValDicts[tilingInd-1].get(color)
                 else:
                     totalGenDiff += 0
             avgGenDiff = totalGenDiff / (len(self.colors)-1)
             avgGenDiffs.append(avgGenDiff)
         return avgGenDiffs
 
-
-
-        
     #######################
     ## Save All And Exit ##
     #######################
@@ -626,16 +634,16 @@ def main():
     shiftProp = (shiftZeroes, shiftRandom, shiftByHalves)
 
     ## valuedRandomly, valuedByDim, valuedBySize, valuedByTT
-    initialValue = (True, False, False, False)
+    initialValue = (False, True, False, False)
     #valuedRandomly, valuedByDim, valuedBySize, valuedByTT = False, False, True, False
 
     numColors = 10
     manualCols = True
-    numStates = 10
+    numStates = 10000
 
-    minGen = 30
-    maxGen = 30
-    fitGen = 31
+    minGen = 20
+    maxGen = 20
+    fitGen = 21
 
     ## You can use this to overide any non properly tiled tilings
     shiftVect = None
@@ -654,15 +662,22 @@ def main():
 
     printGen = 0
 
+    invalidSet = set()
+    invalidSet.update([tuple([0, 0, 1, 0]), tuple([0, 0, 1, 1]), tuple([0, 1, 1, 1]), tuple([0, 0, 1, 2]), tuple([0, 2, 1, 0])])
+    invalidColor = 'purple'
+    dispBorder = False
+    dispInvalid = True
+
 
     numIterations = 20
     for _ in range(numIterations):
         MultigridList(dim, size, shiftVect, sC=sC, shiftProp=shiftProp,
-                      minGen=minGen, maxGen=maxGen, fitGen=fitGen,
+                      minGen=minGen, maxGen=maxGen, fitGen=fitGen, printGen=printGen,
                       numColors=numColors, manualCols=manualCols, numStates=numStates,
                       isValued=True, initialValue=initialValue, valRatio=0.5,
                       isBoundaried=isBoundaried, boundaryReMap=boundaryReMap, boundaryApprox=boundaryApprox,
-                      gol=gol, tileOutline=tileOutline, alpha=alpha, overide=overide, printGen=printGen)
+                      gol=gol, tileOutline=tileOutline, alpha=alpha, overide=overide,
+                      invalidSet=invalidSet, invalidColor=invalidColor, dispBorder=dispBorder, dispInvalid=dispInvalid)
 
     #p.disable()
     #p.print_stats()

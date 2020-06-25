@@ -32,10 +32,12 @@ class Multigrid:
                 isValued=True, initialValue=(True,False,False,False), valRatio=None,
                 boundToCol=None, boundToPC=None,
                 isBoundaried=False, bounds=None, boundaryApprox=True,
-                gol=False, tileOutline=False, alpha=1, printGen=0):
+                gol=False, tileOutline=False, alpha=1, printGen=0,
+                invalidSet=set(), invalidColor='purple', dispBorder=False, dispInvalid=True):
         
         ## Multigrid object and instantiate its constant parameters
         self.dim, self.size, self.sC = dim, size, sC
+        self.shiftProp = shiftProp
         self.shiftZeroes, self.shiftRandom, self.shiftByHalves = shiftProp
         if (not shiftVect) and (ptIndex==0):
             self.shiftVect = self.genShiftVector(zeroes=self.shiftZeroes, random=self.shiftRandom, byHalves=self.shiftByHalves)
@@ -79,9 +81,16 @@ class Multigrid:
         ## Tile statistics
         self.numStable = 0
         self.numUnstable = 0
+        self.numInvalid = 0
         self.stableTiles = []
         self.stablePatches = []
         self.unstableTiles = []
+        self.invalidTiles = []
+
+        self.invalidSet = invalidSet
+        self.invalidColor = invalidColor
+        self.dispBorder = dispBorder
+        self.dispInvalid = dispInvalid
 
     #######################
     ## Generator Methods ##
@@ -179,7 +188,10 @@ class Multigrid:
             stableTile = self.multiGrid[stableTileInd[0]][stableTileInd[1]][stableTileInd[2]][stableTileInd[3]]
             color = self.boundToCol.get(self.valToBound(stableTile.val))
             if stableTile.val == -1:
-                color = 'red'
+                if self.dispInvalid:
+                    color = self.invalidColor
+                else:
+                    return
             path = self.genPath(stableTile.vertices)
             if self.tileOutline:
                 patch = mpatches.PathPatch(path, edgecolor = None, facecolor = color, alpha=self.alpha)
@@ -242,17 +254,8 @@ class Multigrid:
             sV += [self.sC]
             return sV
 
-    #############################
-    ## Generate Initial Tiling ##
-    #############################
-    def genTiling(self):
-        ## Called once at start to generate tiling
-        #
-        ## Create multigrid instance of cell objects
-        #if self.numTileTypes>len(self.colors):
-            #colors = sns.cubehelix_palette(self.numTileTypes, dark=0.1, light=0.9)
+    def genTilingVerts(self):
         self.multiGrid = [[[[None for b in range(-self.size, self.size+1)] for s in range(self.dim)] for a in range(-self.size, self.size+1)] for r in range(self.dim)]
-        self.values = []
         self.allTiles = []
         for r in range(self.dim):
             for a in range(-self.size, self.size+1):
@@ -272,13 +275,46 @@ class Multigrid:
                         for x in it:
                             vList.append((x, next(it)))
                         p_rs_ab.setVertices(vList)
+                        self.multiGrid[r][a][s][b] = p_rs_ab
+
+    #############################
+    ## Generate Initial Tiling ##
+    #############################
+    def genTiling(self):
+        ## Called once at start to generate tiling
+        #
+        ## Create multigrid instance of cell objects
+        #if self.numTileTypes>len(self.colors):
+            #colors = sns.cubehelix_palette(self.numTileTypes, dark=0.1, light=0.9)
+        self.values = []
+        for r in range(self.dim):
+            for a in range(-self.size, self.size+1):
+                for s in range(r+1, self.dim):
+                    for b in range(-self.size, self.size+1):
+                        p_rs_ab = self.multiGrid[r][a][s][b]
+                        vertices = p_rs_ab.vertices
+                        tileType = p_rs_ab.tileType
+                        p_rs_ab_ind = (r, a, s, b)
 
                         ## Set the origin of the tiling, this ensures a properly centered animation
                         if(r==0 and s==1 and a==0 and b==0):
-                            self.zero = [vertices[0], vertices[1]]
+                            self.zero = [vertices[0][0], vertices[0][1]]
 
+                        
+                        if len(p_rs_ab.neighbourhood) in {0, 1, 2, 3, 4, 5, 6}:
+                            p_rs_ab.setVal(-1)
+                            p_rs_ab.setColor(self.invalidColor)
+                            if self.dispBorder:
+                                self.invalidTiles.append(p_rs_ab_ind)
+                                self.numInvalid += 1
+                        if p_rs_ab_ind in self.invalidSet:
+                            p_rs_ab.setVal(-1)
+                            p_rs_ab.setColor(self.invalidColor)
+                            if self.dispInvalid:
+                                self.invalidTiles.append(p_rs_ab_ind)
+                                self.numInvalid += 1
                         ## Game Of Life
-                        if self.gol:
+                        elif self.gol:
                             rand=rd.randrange(0, 3)
                             if rand==0:
                                 p_rs_ab.setColor('black')
@@ -311,8 +347,6 @@ class Multigrid:
                             else:
                                 val=rd.randrange(self.bounds[r-1], self.bounds[r]+1)
                             tileColor = self.boundToCol.get(self.bounds[r])
-                            if a==0 and b==0:
-                                tileColor = 'red'
                             p_rs_ab.setColor(tileColor)
                             p_rs_ab.setVal(val)
                             self.values.append(val)
@@ -343,24 +377,25 @@ class Multigrid:
             valStdDev += (value-self.gridValAvg)**2
         self.valStdDev = math.sqrt(valStdDev/self.numTiles)
 
+
     ########################
     ## Update Grid States ##
     ########################
     def genNextValuedGridState(self, animating=False, boundaried=False):
-        shiftProp=(self.shiftZeroes, self.shiftRandom, self.shiftByHalves)
-
-        nextGrid = Multigrid(self.dim, self.size, shiftVect=self.shiftVect, sC=self.sC, shiftProp=shiftProp,
+        
+        nextGrid = Multigrid(self.dim, self.size, shiftVect=self.shiftVect, sC=self.sC, shiftProp=self.shiftProp,
                             numTilesInGrid=self.numTilesInGrid,
                             startTime=self.startTime, rootPath=self.rootPath, ptIndex=self.ptIndex+1,
                             numStates=self.numStates, colors=self.colors,
                             isValued=self.isValued, initialValue=self.initialValue, valRatio=self.valRatio,
                             boundToCol=self.boundToCol, boundToPC=self.boundToPC,
                             isBoundaried=self.isBoundaried, bounds=self.bounds, boundaryApprox=self.boundaryApprox,
-                            gol=self.gol, tileOutline=self.tileOutline, alpha=self.alpha, printGen=None)
+                            gol=self.gol, tileOutline=self.tileOutline, alpha=self.alpha, printGen=self.printGen,
+                            invalidSet=self.invalidSet, invalidColor=self.invalidColor, dispBorder=self.dispBorder, dispInvalid=self.dispInvalid)
         nextGrid.multiGrid, nextGrid.zero = self.multiGrid, self.zero
         nextGrid.values, nextGrid.numTiles, nextGrid.gridValAvg, nextGrid.valStdDev = self.values, self.numTiles, self.gridValAvg, self.valStdDev
-        nextGrid.printGen = self.printGen
-
+        nextGrid.invalidTiles, nextGrid.numInvalid = self.invalidTiles, self.numInvalid
+        
         self.values = []
         self.colValDict = {}
         self.stableTiles = []
@@ -378,12 +413,17 @@ class Multigrid:
         ## Iterate over the unstable tiles
         else:
             prevUnstableTiles = self.unstableTiles
+            # if self.dispInvalid:
+            #     for tile in self.invalidTiles:
+            #         prevUnstableTiles.append(tile)
             self.unstableTiles = []
             for tInd in prevUnstableTiles:
                 oldTile = self.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
                 newTile = nextGrid.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
                 newTile.neighbour = oldTile.neighbourhood
                 self.genNextTile(oldTile, newTile)
+
+
 
                 
         self.unstableTiles = list(set(self.unstableTiles))
@@ -392,7 +432,11 @@ class Multigrid:
         self.valStdDev = math.sqrt(sum([(val-self.valAvg)**2 for val in self.values])/self.numTiles)
         if not self.gol:
             nextGrid.unstableTiles = self.unstableTiles
-            self.addToStablePatch(self.stableTiles)
+            nextGrid.invalidTiles = self.invalidTiles
+            ##########################################
+            ## This code creates a patch that does not need to be checked next round
+            ## self.addToStablePatch(self.stableTiles)
+            ##########################################
         nextGrid.stablePatches = self.stablePatches
 
         if boundaried:
@@ -413,10 +457,12 @@ class Multigrid:
         return nextGrid
 
     def genNextTile(self, oldTile, newTile):
-        ## This makes sure we do not divide by zero later
-        if len(newTile.neighbourhood) == 0:
-            newTile.setColor('red')
-            self.values.append(oldTile.val)
+        if len(oldTile.neighbourhood) in {0, 1, 2, 3, 4, 5, 6}:
+            newTile.setVal(-1)
+            newTile.setColor(self.invalidColor)
+        elif oldTile.val == -1:
+            newTile.setVal(-1)
+            newTile.setColor(self.invalidColor)
         elif self.gol:
             self.updateTileValsGOL(oldTile, newTile)
         else:
@@ -424,6 +470,7 @@ class Multigrid:
         if type(oldTile.color) is list:
             col = tuple(oldTile.color)
         col = tuple(oldTile.color) if type(oldTile.color) is list else oldTile.color
+        ##### ADD UNSTABLE AND NON BOUDNARIED TILES HERE TO HAVE THEM SHOW UP IN COLOR COMP
         if col in self.colValDict:
             self.colValDict[col] += 1
         else:
@@ -536,7 +583,7 @@ class Multigrid:
     ########################
     ## For the merge algorithm
     def updateTileVals(self, oldTile, newTile):
-        oldTileindex = (oldTile.r, oldTile.a, oldTile.s, oldTile.b)
+        oldTileIndex = (oldTile.r, oldTile.a, oldTile.s, oldTile.b)
         oldTileneighbourValTotal = 0
         oldTileisStable = True
         currBound = self.valToBound(oldTile.val)
@@ -544,22 +591,25 @@ class Multigrid:
             n = self.multiGrid[neighbour[0]][neighbour[1]][neighbour[2]][neighbour[3]]
             oldTileneighbourValTotal += n.val
             nBound = self.valToBound(n.val)
+            ## Check if neighbours are invalid or unstable
             if (n.val==-1) or (nBound!=currBound):
                 self.numUnstable += 1
                 oldTileisStable = False
                 oldTile.setStability(False)
-                self.unstableTiles.append(oldTileindex)
+                self.unstableTiles.append(oldTileIndex)
                 break
         if oldTileisStable:
             self.numStable += 1
             oldTile.setStability(True)
-            oldTileindex = (oldTile.r, oldTile.a, oldTile.s, oldTile.b)
-            self.stableTiles.append(oldTileindex)
+            oldTileIndex = (oldTile.r, oldTile.a, oldTile.s, oldTile.b)
+            self.stableTiles.append(oldTileIndex)
         oldTileneighbourValAvg = oldTileneighbourValTotal/len(oldTile.neighbourhood)
         bound = self.valToBound(oldTileneighbourValAvg)
         pc = self.boundToPC.get(bound)
         # This makes it the merge method
         newTileVal = oldTile.val + (oldTileneighbourValAvg - oldTile.val)*pc
+        #maxUpperChange = ((rd.randrange(0, 1000)*(1/1000)))*(self.numStates - newTileVal)
+        #newTileVal += maxUpperChange
         #newTileVal = self.valRatio*oldTile.val + (1-self.valRatio)*oldTileneighbourValAvg
         newTileColor = self.boundToCol.get(self.valToBound(newTileVal))
 
@@ -567,7 +617,8 @@ class Multigrid:
         if not self.boundaryApprox:
             if newTileColor != oldTile.color:
                 for neighbour in oldTile.neighbourhood:
-                    self.unstableTiles.append(tuple(neighbour))
+                    if self.multiGrid[neighbour[0]][neighbour[1]][neighbour[2]][neighbour[3]].val != -1:
+                        self.unstableTiles.append(tuple(neighbour))
         newTile.setVal(newTileVal)
         newTile.setColor(newTileColor)
     ## For the GOL algorithm
@@ -576,14 +627,14 @@ class Multigrid:
         for neighbour in oldTile.neighbourhood:
             n = self.multiGrid[neighbour[0]][neighbour[1]][neighbour[2]][neighbour[3]]
             oldTileneighbourValTotal += n.val
-        oldTileindex = (oldTile.r, oldTile.a, oldTile.s, oldTile.b)
+        oldTileIndex = (oldTile.r, oldTile.a, oldTile.s, oldTile.b)
         if (oldTileneighbourValTotal+oldTile.val==0):
             self.numStable += 1
             oldTile.setStability(True)
-            self.stableTiles.append(oldTileindex)
+            self.stableTiles.append(oldTileIndex)
         else:
             oldTile.setStability(False)
-            self.unstableTiles.append(oldTileindex)
+            self.unstableTiles.append(oldTileIndex)
         if (oldTileneighbourValTotal+oldTile.val > 3) and (oldTileneighbourValTotal+oldTile.val  < 5):
             newTile.setVal(1)
             newTile.setColor('black')
@@ -607,29 +658,36 @@ class Multigrid:
                         vertices = t.vertices
                         path = self.genPath(vertices)
                         color = colorList[self.ttm[r][s]]
+                        if t.val == -1 or len(t.neighbourhood) in {0, 1, 2, 3, 4, 5, 6}:
+                            if self.dispInvalid:
+                                color = self.invalidColor
+                            else:
+                                break
                         if self.gol:
                             if t.val==0:
                                 color = 'white'
                             else:
                                 color = 'black'
-                        elif self.ptIndex==0 and r==0 and s==1 and a==0 and b==0:
-                            color = 'red'
                         # The end
-                        elif (abs(a)==self.size and abs(b)==self.size) or t.val==0:
-                            color = 'black'
-                        # Background
-                        elif abs(a)==self.size or abs(b)==self.size:
-                            if self.ptIndex > 0:
-                                bound = self.valToBound(self.gridValAvg)
-                                ### THIS BECOMES EXPENSIVE
-                                boundInd = self.bounds.index(bound)
-                                if bound <= 1:
-                                    val = rd.randrange(0, bound+1)
-                                else:
-                                    val = rd.randrange(self.bounds[boundInd-1], bound)
-                                color = self.boundToCol.get(bound)
-                                t.setColor(color)
-                                t.setVal(val)
+                        elif tuple([r, a, s, b]) in self.invalidSet:
+                            if self.dispInvalid:
+                                color = self.invalidColor
+                            else:
+                                break
+                        # Adaptive Background
+                        # elif abs(a)==self.size or abs(b)==self.size:
+                        #     if self.ptIndex > 0:
+                        #         bound = self.valToBound(self.gridValAvg)
+                        #         ### THIS BECOMES EXPENSIVE
+                        #         # boundInd = self.bounds.index(bound)
+                        #         boundInd = np.searchsorted(self.bounds, bound)
+                        #         if bound <= 1:
+                        #             val = rd.randrange(0, bound+1)
+                        #         else:
+                        #             val = rd.randrange(self.bounds[boundInd-1], bound)
+                        #         color = self.boundToCol.get(bound)
+                        #         t.setColor(color)
+                        #         t.setVal(val)
                         # Origin
                         # Playable Space
                         elif self.isValued:
@@ -655,11 +713,23 @@ class Multigrid:
             sampColor = self.boundToCol.get(self.valToBound(samp.val))
             for index in boundary:
                 t = self.multiGrid[index[0]][index[1]][index[2]][index[3]]
-                color = sampColor
+                if tuple(index) in self.invalidSet or len(t.neighbourhood) in {0, 1, 2, 3, 4, 5, 6}:
+                    continue
+                else:
+                    color = sampColor
                 path = self.genPath(t.vertices)
                 patch = mpatches.PathPatch(path, edgecolor = None, facecolor = color, alpha=self.alpha) if self.tileOutline else mpatches.PathPatch(path, edgecolor = color, facecolor = color, alpha=self.alpha)
                 self.ax.add_patch(patch)
                 self.patches.append(patch)
+        for index in self.invalidTiles:
+            t = self.multiGrid[index[0]][index[1]][index[2]][index[3]]
+            path = self.genPath(t.vertices)
+            patch = mpatches.PathPatch(path, edgecolor = None, facecolor = self.invalidColor, alpha=self.alpha) if self.tileOutline else mpatches.PathPatch(path, edgecolor = self.invalidColor, facecolor = self.invalidColor, alpha=self.alpha)
+            self.ax.add_patch(patch)
+            self.patches.append(patch)
+
+
+
     
     def selectiveDisplay(self, backgroundCol, selection, selectionCol):
         for tInd in self.allTiles:

@@ -46,7 +46,7 @@ class MultigridList:
                  borderVal=-1, invalidVals=[], dispBorder=False, dispInvalid=True):
         
         ## Animation on
-        self.animating = True
+        self.animating = False
         ## Early animation exit param
         self.continueAnimation = True
 
@@ -99,24 +99,25 @@ class MultigridList:
         self.percentStableRepeatCount = 0
         self.prevPercentStable = 1
 
-        ## Generate lists used to keep track of statistics
-        self.percentStables, self.percentUnstables, self.percentTotals = [], [], []
-        self.normPercentStables, self.normPercentUnstables = [], []
-        self.numBoundaries, self.numUnstable = [], []
-        self.valAvgs, self.valStdDevs = [], []
-        self.colValDicts = []
-
         ## Generate directory names and paths
         self.genDirectoryPaths()
-
-        ## Generate ruleset
-        self.genBounds()
+        
+        ## Generate lists used to keep track of statistics
+        if self.animating:
+            ## Generate ruleset
+            self.genBounds()
+            
+            if self.isBoundaried:
+                self.numBoundaries, self.numUnstable = [], []
+                
+                
+            self.percentStables, self.percentUnstables, self.percentTotals = [], [], []
+            self.normPercentStables, self.normPercentUnstables = [], []
+            self.valAvgs, self.valStdDevs = [], []
+            self.colValDicts = []
 
         ## Current tile count
         self.ptIndex = 0
-
-        ## List that stores all multigrids, will by dynamically managed
-        self.multigridList = []
 
         ## Create and animate original tiling
         self.currentGrid = Multigrid(self.dim, self.size, shiftVect=self.shiftVect, sC=self.sC, shiftProp=shiftProp,
@@ -139,16 +140,25 @@ class MultigridList:
             self.anim = FuncAnimation(self.animatingFigure, self.updateAnimation, frames=self.genFrames, init_func=self.initPlot(), repeat=False)
             self.updateDir(self.currentGrid.shiftVect)
             self.saveTilingInfo()
-            print(f"Grids 0-{self.ptIndex-1} Completed succesfully")
+            print(f"Grid(s) 0-{self.ptIndex} Generated succesfully")
+            print(f"Grid(s) 0-{self.ptIndex-1} Displayed and analyzed succesfully")
 
             lim = 10
             bound = lim*(self.size+self.dim-1)**1.2
             self.ax.set_xlim(-bound + self.currentGrid.zero[0], bound + self.currentGrid.zero[0])
             self.ax.set_ylim(-bound + self.currentGrid.zero[1], bound + self.currentGrid.zero[1])
+            
+            self.saveAndExit()
         else:
-            self.multigridList.append(self.currentGrid)
+            os.makedirs(self.localTrashPath)
+            os.makedirs(f'{self.localTrashPath}ByTimeStep/')
+            self.currentGrid.genTilingVerts()
+            print('Tile vertices generated')
+            self.currentGrid.genTileNeighbourhoods()
+            self.currentGrid.genNonDiagTileNeighbourhoods()
+            print('Tile neighbourhood generated')
+            self.currentGrid.genTiling()
             self.tilingIter(self.currentGrid)
-        self.saveAndExit()
 
     def initPlot(self):
         self.ax.cla()
@@ -354,7 +364,7 @@ class MultigridList:
     def genDirectoryPaths(self):
         ## rootPath and path data
         filePath = os.path.realpath(__file__)
-        self.rootPath = filePath.replace('src/MultigridList.py', '/outputData/fitMultigridData/')
+        self.rootPath = filePath.replace('src/MultigridList.py', 'outputData/fitMultigridData/')
         self.multigridListInd = str(rd.randrange(0, 2000000000))
         self.gridPath = f'listInd{self.multigridListInd}/'
         ## localPaths
@@ -381,11 +391,10 @@ class MultigridList:
         self.detailedInfoPath = f'{self.localPath}listInd{self.multigridListInd[0:3]}detaileInfo.json'
         self.detailedInfoTrashPath = self.detailedInfoPath.replace('fitMultigridData', 'unfitMultigridData')
 
-
-
     def genPngPaths(self, pngName):
         pngPath = f'{self.localPath}listInd{self.multigridListInd[0:3]}{pngName}.png'
         return pngPath, pngPath.replace('fitMultigridData', 'unfitMultigridData')
+
 
     def genBounds(self):
         sampleDef = 1000
@@ -582,23 +591,17 @@ class MultigridList:
 
 
 
-
-
-
     #####################################################
     ## Old Methods For Generating Animation By Picture ##
     #####################################################
     def genNextGrid(self, origGrid):
-        nextGrid = origGrid.genNextValuedGridState()
+        nextGrid = self.currentGrid.genNextValuedGridState()
         self.ptIndex += 1
-        self.multigridList.append(nextGrid)
-        self.ptIndex += 1
+        self.currentGrid = nextGrid
         return nextGrid
                         
     def tilingIter(self, rootPop):
-        currentPop = rootPop
-        while(self.ptIndex < self.maxGen):
-            currentPop = self.genNextGrid(currentPop)
+        rootPop.displayTiling(animating=False)
     ######################################################
     ######################################################
     ######################################################
@@ -642,6 +645,7 @@ def main():
     size = 5
     sC = 0
     
+    manualCols = True
     tileOutline = True
     alpha = 1
     
@@ -653,7 +657,6 @@ def main():
     numColors = 20
     numStates = 10000
     boundaryReMap = True
-    manualCols = True
 
     ## valuedRandomly, valuedByDim, valuedBySize, valuedByTT
     initialValue = (True, False, False, False)
@@ -662,7 +665,7 @@ def main():
     maxGen = 20
     fitGen = 21
 
-    isBoundaried = False
+    isBoundaried = True
     ## Setting boundary approx trades time complexity for calculating the exact tiling
     ## Setting boundaryApprox as True improves time complexity and gives tiling approximation
     boundaryApprox = False
@@ -695,7 +698,7 @@ def main():
     invalidSets.append(invalidSet)
     invalidSets.append(invalidSet2)
     borderColor = 'black'
-    invalidColors = ['white', 'white']
+    invalidColors = ['black', 'black']
     borderVal = numStates
     invalidVals = [numStates, numStates]
     dispBorder = True

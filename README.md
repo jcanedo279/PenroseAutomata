@@ -1,21 +1,7 @@
 # PenroseAutomata
 A series of algorithms to automate the PT calculated in the PenroseTiler repository
 
-# If Here For Pretty Pictures
-If you are here for the prety pictures and gifs, please go towards the bottom and skip the cs/math
-
-# The Directory
-The PenroseAutomata repository comprises four parts:
-- A 'src' folder, containing the scripts:
-     - The main python scripts (MultigridList, Multigrid, MultigridCell)
-     - The supplementary scripts (QuadTree)
-- An 'outputData' folder, where the outputs of the src files go
-     - 'fitMultigridData': contains all the data of the tiles who survive past fitGen generations
-     - 'unfitMultigridData': contains the data of the tiles who do not survive past fitGen generations
-- An 'Examples' folder, where any permanent data can be saved, ie favorite tiles
-- A 'README.md' file, this is where we currently are
-
-# Examples
+# Sample Results / Animations
 ### Single Frame Tilings
 You can think as each of these tilings as its own universe, that is an unfilled universe with no states.
 Rather, each state here can be thought of as the type of tiling that comprises the space.
@@ -106,10 +92,23 @@ If we shift the acceptance bounds down by one we get a quickly convergent algori
 Here we are on if nCount is greater than 3 and smaller than 6.
 ![oscillatorSampleGOL.gif](Examples/oscillatorSampleGOL.gif "Sample oscillators from 10 dimmensions")
 
+
+# The Directory
+The PenroseAutomata repository comprises four parts:
+- A 'src' folder, containing the scripts:
+     - The main python scripts (MultigridList, Multigrid, MultigridCell)
+     - The supplementary scripts (QuadTree)
+- An 'outputData' folder, where the outputs of the src files go
+     - 'fitMultigridData': contains all the data of the tiles who survive past fitGen generations
+     - 'unfitMultigridData': contains the data of the tiles who do not survive past fitGen generations
+- An 'Examples' folder, where any permanent data can be saved, ie favorite tiles
+- A 'README.md' file, this is where we currently are
+
 # How To Run
 To familiarize yourself with how these scripts work, run MultigridList.py locally via its main() method. Notice that this will create a folder in 'unfitMultigridData' or 'fitMultigridData' containing a gif of a cellular autonoma and two graphs.
 If the tiling automata survives to maxGen generations, the tiling folder will be palced in 'fitMultigridData', otherwise it will be placed in 'unfitMultigridData'.
 Everytime you run the multigridList file, it will clear 'unfitMultigridData' for you, therefore move the files you like to 'fitMultigridData'
+Here is a brief overview of the parameters that define a Penrose Automata:
 
      ## Resets the fit and unfit directories every script run
      cleanFileSpace(True, fitClean=False, unfitClean=True)

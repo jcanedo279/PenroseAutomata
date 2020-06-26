@@ -656,7 +656,7 @@ class Multigrid:
     ## Grid Display Methods ##
     ##########################
     ## Display all tiles
-    def displayTiling(self):
+    def displayTiling(self, animating=True):
         self.setFigExtras()
         self.patches = []
         for r in range(self.dim):
@@ -714,8 +714,10 @@ class Multigrid:
                         self.ax.add_patch(patch)
                         self.patches.append(patch)
         ## If the pt is the original, manually return the first figure
-        if self.ptIndex==0:
+        if animating and self.ptIndex==0:
             return self.ax
+        if not animating:
+            self.saveFigure()
     ## Display boundaries
     def displayBoundaries(self):
         self.setFigExtras()
@@ -777,7 +779,7 @@ class Multigrid:
         return self.ax
 
     def saveFigure(self):
-        figPath = f'{self.rootPath}gen{self.ptIndex}.png'
+        figPath = f'{self.rootPath}ByTimeStep/gen{self.ptIndex}'
         plt.savefig(figPath)
 
 

@@ -9,7 +9,6 @@ import pstats
 import json
 
 import math
-import datetime
 
 import itertools
 
@@ -43,9 +42,9 @@ class MultigridList:
                  isValued=True, initialValue=(True,False,False,False), valRatio=None,
                  isBoundaried=False, boundaryReMap=False, boundaryApprox=False,
                  gol=False, tileOutline=False, alpha=1, overide=False, printGen=0,
-                 invalidSet=set(), invalidColor='purple', dispBorder=False, dispInvalid=True):
+                 borderSet={1,2,3,4,5,6}, invalidSets=[], borderColor='black', invalidColors=[],
+                 borderVal=-1, invalidVals=[], dispBorder=False, dispInvalid=True):
         
-
         ## Animation on
         self.animating = True
         ## Early animation exit param
@@ -82,10 +81,13 @@ class MultigridList:
         ## Do not mess with this
         self.tileSize = 10
 
-        self.invalidSet = invalidSet
-        self.invalidColor = invalidColor
-        self.dispBorder = dispBorder
-        self.dispInvalid = dispInvalid
+        self.borderSet, self.invalidSets, self.borderColor, self.invalidColors = borderSet, invalidSets, borderColor, invalidColors
+        self.borderVal, self.invalidVals = borderVal, invalidVals
+        self.dispBorder, self.dispInvalid = dispBorder, dispInvalid
+        
+        self.invalidSet = set()
+        for invalidSet in self.invalidSets:
+            self.invalidSet.update(invalidSet)
 
         ## Parameter Safety Check
         self.parameterSafetyCheck()
@@ -125,7 +127,9 @@ class MultigridList:
                                      boundToCol=self.boundToCol, boundToPC=self.boundToPC,
                                      isBoundaried=isBoundaried, bounds=self.bounds, boundaryApprox=self.boundaryApprox,
                                      gol=self.gol, tileOutline=self.tileOutline, alpha=self.alpha, printGen=self.printGen,
-                                     invalidSet=self.invalidSet, invalidColor=self.invalidColor, dispBorder=self.dispBorder, dispInvalid=self.dispInvalid)
+                                     borderSet=self.borderSet, invalidSets=self.invalidSets, borderColor=self.borderColor, invalidColors=self.invalidColors,
+                                     borderVal=self.borderVal, invalidVals=self.invalidVals, dispBorder=self.dispBorder, dispInvalid=self.dispInvalid)
+        self.currentGrid.invalidSet = self.invalidSet
 
         if self.animating:
             self.animatingFigure = plt.figure()
@@ -135,7 +139,7 @@ class MultigridList:
             self.anim = FuncAnimation(self.animatingFigure, self.updateAnimation, frames=self.genFrames, init_func=self.initPlot(), repeat=False)
             self.updateDir(self.currentGrid.shiftVect)
             self.saveTilingInfo()
-            print(f'Grids 0-{self.ptIndex-1} Completed succesfully')
+            print(f"Grids 0-{self.ptIndex-1} Completed succesfully")
 
             lim = 10
             bound = lim*(self.size+self.dim-1)**1.2
@@ -170,6 +174,7 @@ class MultigridList:
             self.currentGrid.genTilingVerts()
             print('Tile vertices generated')
             self.currentGrid.genTileNeighbourhoods()
+            self.currentGrid.genNonDiagTileNeighbourhoods()
             print('Tile neighbourhood generated')
             self.currentGrid.genTiling()
             print('Original tile populated')
@@ -210,14 +215,15 @@ class MultigridList:
             ## I think this helps with the memory leaks
             del origGrid
         ## Format animation title
-        if self.dim < 7:
-            shiftVectStr = ', '.join(str(round(i,1)) for i in self.currentGrid.shiftVect)
-            title = f'n={self.dim}, size={self.size}, sC={self.sC}, sV=[{shiftVectStr}], gen={self.ptIndex}'
-            self.ax.set_title(title)
-        else:
-            shifts = [str(round(i,1)) for i in self.currentGrid.shiftVect]
-            title = f'n={self.dim}, size={self.size}, sC={self.sC}, sV=[{shifts[0]}, ..., {shifts[self.dim-1]}], gen={self.ptIndex}'
-            self.ax.set_title(title)
+        sM = ''
+        if self.shiftProp[0]:
+            sM = 'zeroes'
+        elif self.shiftProp[1]:
+            sM = 'random'
+        elif self.shiftProp[2]:
+            sM = 'halves'
+        title = f'dim={self.dim}, size={self.size}, sC={self.sC}, sM={sM}, gen={self.ptIndex}'
+        self.ax.set_title(title)
         print(f'Grid {self.ptIndex} complete', end='\r')
         self.ptIndex += 1
         return axis
@@ -226,7 +232,7 @@ class MultigridList:
     ## Parameter Safety Check ##
     ############################
     def parameterSafetyCheck(self):
-        print('-'*40)
+        print(' '*50)
         flawCaught, critFlawCaught = False, False
         ## This ensures that all multigrid parameters are valid
         if self.dim<3:
@@ -303,7 +309,7 @@ class MultigridList:
             print(f"     The number of colors and the number of states both defaulted to numColors('{self.numColors}')")
             self.numStates = self.numColors
             flawCaught, critFlawCaught = True, True
-        print('-'*40)
+        print('-'*50)
         print('All Paramters Validated')
         print('Parameter Safety Check Passed')
         print(' ')
@@ -315,10 +321,7 @@ class MultigridList:
             print('     Critical flaw(s) were caught on the input condition, flaw correction implemented, attempting build')
         if not flawCaught and not critFlawCaught:
             print('     No flaws were caught on the input condition, parameterization successful, attempting build')
-        print(' ')
-        print('-'*40)
-        print(' '*40)
-        print('-'*40)
+        print('-'*50)
 
     #######################
     ## Generator Methods ##
@@ -371,7 +374,9 @@ class MultigridList:
         ## normColCompPaths
         self.normColCompPath, self.normColCompTrashPath = self.genPngPaths('normColColorCompStats')
         ## avgGenDiffs
-        self.avgGenDiffsPath, self.avgGenDiffsTrashPath = self.genPngPaths('avgGenDiffs')
+        self.genAvgChangePath, self.genAvgChangeTrashPath = self.genPngPaths('genAvgChange')
+        ## updatedStabilityPath
+        self.updatedStabilityPath, self.updatedStabilityTrashPath = self.genPngPaths('updatedStabilityPath')
         ## jsonPath
         self.detailedInfoPath = f'{self.localPath}listInd{self.multigridListInd[0:3]}detaileInfo.json'
         self.detailedInfoTrashPath = self.detailedInfoPath.replace('fitMultigridData', 'unfitMultigridData')
@@ -401,15 +406,17 @@ class MultigridList:
             self.boundToCol, self.boundToKeyCol, self.boundToPC = {}, {}, {}
             for i, bound in enumerate(self.bounds):
                 self.boundToCol[bound] = self.colors[i]
-                self.boundToPC[bound] = rd.randrange(0, sampleDef+1)/sampleDef
+                #self.boundToPC[bound] = rd.randrange(0, sampleDef+1)/sampleDef
                 if rd.randrange(0, upper) == 0:
                     self.boundToKeyCol[bound] = self.colors[rd.randrange(0, len(self.colors))]
+                    self.boundToPC[bound] = 0
                 else:
                     self.boundToKeyCol[bound] = self.colors[i]
+                    self.boundToPC[bound] = rd.randrange(0, sampleDef+1)/sampleDef
 
-    ########################
-    ## Save Final Results ##
-    ########################
+    ############################
+    ## Save Tiling Statistics ##
+    ############################
     def saveStabilityFig(self):
         stabilityFig = go.Figure()
         x = [str(i) for i in range(len(self.percentTotals))]
@@ -446,6 +453,7 @@ class MultigridList:
         avgGens = self.genColAvg()
         colCompFig = go.Figure()
         x = [str(i) for i in range(len(self.colValDicts))]
+        numBorderTiles = [(len(self.currentGrid.specialTiles)-len(self.invalidSet)) for i in range(len(self.colValDicts))]
         self.colComp = [[] for _ in range(len(self.colors))]
         for tilingInd in range(len(self.colValDicts)):
             for i, color in enumerate(self.colors):
@@ -454,10 +462,14 @@ class MultigridList:
                     self.colComp[i].append(self.colValDicts[tilingInd].get(color))
                 else:
                     self.colComp[i].append(0)
+        colCompFig.add_trace(go.Scatter(x=x, y=numBorderTiles, name='num border tiles', line=dict(color='black', width=4)))
+        for i, invalidSet in enumerate(self.invalidSets):
+            invalidSetTiles = [len(invalidSet) for x in range(len(self.colValDicts))]
+            colCompFig.add_trace(go.Scatter(x=x, y=invalidSetTiles, name=f'invalid set {i}', line=dict(color=f'{self.invalidColors[i]}', width=4)))
+        colCompFig.add_trace(go.Scatter(x=x, y=avgGens, name='color avg', line=dict(color=f'red', width=4)))
         for color, colHist, i in zip(self.colors, self.colComp, itertools.count()):
             color = tuple(color) if type(color) is list else color
             colCompFig.add_trace(go.Scatter(x=x, y=colHist, name=f'color{i}', line=dict(color=f'rgb{color}', width=4)))
-        colCompFig.add_trace(go.Scatter(x=x, y=avgGens, name=f'color avg', line=dict(color=f'red', width=4)))
         colCompFig.update_layout(title=f'Color Composition vs. Tile Generation',
                                   xaxis_title='tile Index',
                                   yaxis_title='number of tiles')
@@ -477,11 +489,11 @@ class MultigridList:
             for colorInd in range(len(self.colComp)):
                 numTiles += normColComp[colorInd][tilingInd]
             totalNumTiles.append(numTiles)
+        normColCompFig.add_trace(go.Scatter(x=x, y=totalNumTiles, name='total percentage', line=dict(color='black', width=4)))
+        normColCompFig.add_trace(go.Scatter(x=x, y=normAvgGens, name='normalized color avg', line=dict(color='red', width=4)))
         for color, colHist, i in zip(self.colors, normColComp, itertools.count()):
             color = tuple(color) if type(color) is list else color
             normColCompFig.add_trace(go.Scatter(x=x, y=colHist, name=f'color{i}', line=dict(color=f'rgb{color}', width=4)))
-        normColCompFig.add_trace(go.Scatter(x=x, y=normAvgGens, name=f'normalized color avg', line=dict(color=f'red', width=4)))
-        normColCompFig.add_trace(go.Scatter(x=x, y=totalNumTiles, name='total percentage', line=dict(color='black', width=4)))
         normColCompFig.update_layout(title='Normalized Color Composition vs. Tile Generation',
                                  xaxis_title='tile index',
                                  yaxis_title='percent composition of evaluated tiles')
@@ -491,13 +503,14 @@ class MultigridList:
 
         avgGenDiffsFig = go.Figure()
         avgGenDiffx = [str(i) for i in range(len(self.colValDicts)-1)]
-        avgGenDiffsFig.add_trace(go.Scatter(x=avgGenDiffx, y=avgGenDiffs, name=f'avgColDiff', line=dict(color=f'black', width=4)))
+        avgGenDiffsFig.add_trace(go.Scatter(x=avgGenDiffx, y=avgGenDiffs, name='avgColDiff', line=dict(color='black', width=4)))
         avgGenDiffsFig.update_layout(title='Derivative of average color composition',
                                      xaxis_title='tile index',
                                      yaxis_title='average change')
-        avgGenDiffsFig.write_image(self.avgGenDiffsTrashPath)
+        avgGenDiffsFig.write_image(self.genAvgChangeTrashPath)
     def saveTilingInfo(self):
         tileData = {'dim':self.dim, 'size':self.size, 'sC':self.sC, 'shiftProp':self.shiftProp,
+                    'shiftVect':self.shiftVect,
                     'numTilesInGrid':self.numTilesInGrid,
                     'minGen':self.minGen, 'maxGen':self.maxGen, 'fitGen':self.fitGen, 'printGen':self.printGen,
                     'numColors':self.numColors, 'numStates':self.numStates, 'manualCols':self.manualCols,
@@ -559,12 +572,12 @@ class MultigridList:
             for f in files:
                 shutil.move(f, self.localPath)
         ## Print execution completion and time
-        print('-'*40)
-        print(' '*40)
-        print('-'*40)
+        print('-'*50)
+        print(' '*50)
+        print('-'*50)
         print('Algorithm Completed')
         print('Executed in {} seconds'.format(time.time()-self.startTime))
-        print('-'*40)
+        print('-'*50)
 
 
 
@@ -622,24 +635,24 @@ def main():
     #p = cProfile.Profile()
     # Enable profiling
     #p.enable()
-
+    
     cleanFileSpace(True, fitClean=False, unfitClean=True)
 
-    dim = 15
-    sC = 1/2
+    dim = 5
+    sC = 0
     size = 5
-    tileOutline = False
+    tileOutline = True
     alpha = 1
-    shiftZeroes, shiftRandom, shiftByHalves = False, True, False
+    shiftZeroes, shiftRandom, shiftByHalves = True, False, False
     shiftProp = (shiftZeroes, shiftRandom, shiftByHalves)
 
     ## valuedRandomly, valuedByDim, valuedBySize, valuedByTT
-    initialValue = (False, True, False, False)
+    initialValue = (True, False, False, False)
     #valuedRandomly, valuedByDim, valuedBySize, valuedByTT = False, False, True, False
 
-    numColors = 10
-    manualCols = True
+    numColors = 20
     numStates = 10000
+    manualCols = True
 
     minGen = 20
     maxGen = 20
@@ -648,7 +661,7 @@ def main():
     ## You can use this to overide any non properly tiled tilings
     shiftVect = None
 
-    isBoundaried = True
+    isBoundaried = False
     boundaryReMap = True
     ## Setting boundary approx trades time complexity for calculating the exact tiling
     ## Setting boundaryApprox as True improves time complexity and gives tiling approximation
@@ -662,14 +675,33 @@ def main():
 
     printGen = 0
 
+    borderSet = {0, 1, 2, 3, 4, 5, 6}
+    invalidSets = []
+
     invalidSet = set()
-    invalidSet.update([tuple([0, 0, 1, 0]), tuple([0, 0, 1, 1]), tuple([0, 1, 1, 1]), tuple([0, 0, 1, 2]), tuple([0, 2, 1, 0])])
-    invalidColor = 'purple'
-    dispBorder = False
+    invalidSet2 = set()
+    # for a in range(-size, size+1):
+    #     for b in range(-size, size+1):
+    #         invalidSet.add((0, a, 1, b))
+    for r in range(dim):
+        for s in range(r+1, dim):
+            invalidSet.add((r, 0, s, 0))
+            invalidSet2.add((r, 2, s, 2))
+            
+    invalidSet.update([
+        # (0, 0, 1, 0), (0, 0, 1, 1), (0, 1, 1, 1), (0, 0, 1, 2), (0, 2, 1, 0)
+        ])
+    invalidSets.append(invalidSet)
+    invalidSets.append(invalidSet2)
+    borderColor = 'black'
+    invalidColors = ['white', 'white']
+    borderVal = numStates
+    invalidVals = [numStates, numStates]
+    dispBorder = True
     dispInvalid = True
 
 
-    numIterations = 20
+    numIterations = 1
     for _ in range(numIterations):
         MultigridList(dim, size, shiftVect, sC=sC, shiftProp=shiftProp,
                       minGen=minGen, maxGen=maxGen, fitGen=fitGen, printGen=printGen,
@@ -677,7 +709,8 @@ def main():
                       isValued=True, initialValue=initialValue, valRatio=0.5,
                       isBoundaried=isBoundaried, boundaryReMap=boundaryReMap, boundaryApprox=boundaryApprox,
                       gol=gol, tileOutline=tileOutline, alpha=alpha, overide=overide,
-                      invalidSet=invalidSet, invalidColor=invalidColor, dispBorder=dispBorder, dispInvalid=dispInvalid)
+                      borderSet=borderSet, invalidSets=invalidSets, borderColor=borderColor, invalidColors=invalidColors,
+                      borderVal=borderVal, invalidVals=invalidVals, dispBorder=dispBorder, dispInvalid=dispInvalid)
 
     #p.disable()
     #p.print_stats()

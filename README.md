@@ -1,19 +1,22 @@
 # PenroseAutomata
-     A series of algorithms to automate the PT calculated in the PenroseTiler repository
+A series of algorithms to automate the PT calculated in the PenroseTiler repository
 The PenroseAutomata repository comprises five parts:
-- The main python scripts (MultigridList, Multigrid, MultigridCell)
-- The supplementary scripts (QuadTree)
-- 2 folders used for caching data ('TrashLists'//non-selective, 'MultigridListData'//selective)
-- 2 additional soft folders ('About The Method'//theMath, 'Examples'//prettyAnimations)
-- Misc. files (README.md, '_pycache_', '.DS_Store')
+- A 'src' folder, containing the scripts:
+     - The main python scripts (MultigridList, Multigrid, MultigridCell)
+     - The supplementary scripts (QuadTree)
+- An 'outputData' folder, where the outputs of the src files go
+     - 'fitMultigridData': contains all the data of the tiles who survive past fitGen generations
+     - 'unfitMultigridData': contains the data of the tiles who do not survive past fitGen generations
+- An 'Examples' folder, where any permanent data can be saved, ie favorite tiles
+- A 'README.md' file, this is where we currently are
 
 # If Here For Pretty Pictures
 If you are here for the prety pictures and gifs, please go towards the bottom and skip the cs/math
 
 # How To Run
-To familiarize yourself with how these scripts work, run MultigridList.py locally via its main() method. Notice that this will create a folder in 'TrashLists' or 'MultigridListData' containing a gif of a cellular autonoma and two graphs.
-If the tiling automata survives to maxGen generations, the tiling folder will be palced in 'MultigridListData', otherwise it will be placed in 'TrashLists'.
-Everytime you run the multigridList file, it will clear 'TrashLists' for you, therefore move the files you like to 'MultigridListData'
+To familiarize yourself with how these scripts work, run MultigridList.py locally via its main() method. Notice that this will create a folder in 'unfitMultigridData' or 'fitMultigridData' containing a gif of a cellular autonoma and two graphs.
+If the tiling automata survives to maxGen generations, the tiling folder will be palced in 'fitMultigridData', otherwise it will be placed in 'unfitMultigridData'.
+Everytime you run the multigridList file, it will clear 'unfitMultigridData' for you, therefore move the files you like to 'fitMultigridData'
 
 The Dimmension of the tiling is given by dim, and the size is given by size. Notice the tiling has (dim choose 2)*(2*size+1)^2 tiles.
 sC of 0 makes a true penrose tiling, while 1/2 makes a generalized tiling.

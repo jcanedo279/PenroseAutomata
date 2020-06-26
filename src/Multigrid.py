@@ -33,7 +33,8 @@ class Multigrid:
                 boundToCol=None, boundToPC=None,
                 isBoundaried=False, bounds=None, boundaryApprox=True,
                 gol=False, tileOutline=False, alpha=1, printGen=0,
-                invalidSet=set(), invalidColor='purple', dispBorder=False, dispInvalid=True):
+                borderSet={0,1,2,3,4,5,6}, invalidSets=[], borderColor='black', invalidColors=[],
+                borderVal=0, invalidVals=[], dispBorder=False, dispInvalid=True):
         
         ## Multigrid object and instantiate its constant parameters
         self.dim, self.size, self.sC = dim, size, sC
@@ -85,119 +86,11 @@ class Multigrid:
         self.stableTiles = []
         self.stablePatches = []
         self.unstableTiles = []
-        self.invalidTiles = []
-
-        self.invalidSet = invalidSet
-        self.invalidColor = invalidColor
-        self.dispBorder = dispBorder
-        self.dispInvalid = dispInvalid
-
-    #######################
-    ## Generator Methods ##
-    #######################
-    def genNormVect(self):
-        return [(-1)**((2/self.dim)*i) for i in range(self.dim)]
-    
-    def genPath(self, vertices):
-        ## Intent, create a closped polygon path object
-        Path = mpath.Path
-        path_data = [
-            (Path.MOVETO, vertices[0]),
-            (Path.LINETO, vertices[1]),
-            (Path.LINETO, vertices[2]),
-            (Path.LINETO, vertices[3]),
-            (Path.CLOSEPOLY, vertices[0]),
-            ]
-        codes, verts = zip(*path_data)
-        return mpath.Path(verts, codes)
-
-    def genttm(self):
-        ## Intent: Find the tile type of all tiles
-        if self.dim%2 == 0:
-            numTileTypes = int((self.dim/2)-1)
-        else:
-            numTileTypes = int((self.dim-1)/2)
-        self.numTileTypes = numTileTypes
-        ## create tile type adjacency matrix
-        ttm = [[0 for x in range(self.dim)] for y in range(self.dim)]
-        for x in range(self.dim):
-            for y in range(1, self.numTileTypes+1):
-                if x+y >= self.dim:
-                    ttm[x][(x+y)-self.dim] = y-1
-                else:
-                    ttm[x][x+y] = y-1
-                ttm[x][x-y] = y-1
-        return ttm
-
-    ########################
-    ## Conversion Methods ##
-    ########################
-    def tileParamToVertices(self, r, s, a, b):
-        ## Return a generator object of tile vertices
-        normVect = self.genNormVect()
-        ## kp is the tile cordinate calculated by using the k function to project the coordinates of some p in G
-        if normVect[s-r].imag == 0:
-            kp = 1j*(normVect[r]*(b-self.shiftVect[s]) - normVect[s]*(a-self.shiftVect[r])) / 0.00001
-        else:
-            kp = 1j*(normVect[r]*(b-self.shiftVect[s]) - normVect[s]*(a-self.shiftVect[r])) / normVect[s-r].imag
-        k = [0--((kp/i).real+t)//1 for i, t in zip(normVect, self.shiftVect)]
-        for k[r], k[s] in [(a, b), (a+1, b), (a+1, b+1), (a, b+1)]:
-            yield sum(x*t for t, x in zip(normVect, k))
-    
-    def imagToReal(self, vertices):
-        for vertex in vertices:
-            scaledVert = self.tileSize*vertex
-            yield from (scaledVert.real, scaledVert.imag)
-
-    def valToBound(self, val):
-        ## Search sorted is the perfect function for this application and does the job in O(log(n)) tc
-        ## Search sorted returns the index of the first number in self.bounds that is greater then or equal to val
-        return self.bounds[np.searchsorted(self.bounds, val)]
-       
-    ####################
-    ## Setter Methods ##
-    ####################
-    def setValStats(self, numTiles, valAvg, valStdDev):
-        self.numTiles = numTiles
-        self.valAvg = valAvg
-        self.valStdDev = valStdDev
-
-    def setFigExtras(self):
-        #ax.grid()
-        lim = 10
-        bound = lim*(self.size+self.dim+1)**1.2
-        self.ax.set_xlim(-bound + self.zero[0], bound + self.zero[0])
-        self.ax.set_ylim(-bound + self.zero[1], bound + self.zero[1])
-        if self.dim < 7:
-            shiftVectStr = ', '.join(str(round(i,1)) for i in self.shiftVect)
-            self.ax.set_title(f"n={self.dim}, size={self.size}, shiftConstant={self.sC}, shiftVect~[{shiftVectStr}]")
-        else:
-            shifts = [str(round(i,1)) for i in self.shiftVect]
-            self.ax.set_title(f"n={self.dim}, size={self.size}, shiftConstant={self.sC}, shiftVect~[{shifts[0]}, ..., {shifts[self.dim-1]}]")
-
-    ########################
-    ## Functional Methods ##
-    ########################
-    def saveFig(self):
-        if not os.path.isdir(self.rootPath):
-            os.makedirs(self.rootPath)
-        plt.savefig(self.pathPng)
-
-    def addToStablePatch(self, stableTiles):
-        for stableTileInd in stableTiles:
-            stableTile = self.multiGrid[stableTileInd[0]][stableTileInd[1]][stableTileInd[2]][stableTileInd[3]]
-            color = self.boundToCol.get(self.valToBound(stableTile.val))
-            if stableTile.val == -1:
-                if self.dispInvalid:
-                    color = self.invalidColor
-                else:
-                    return
-            path = self.genPath(stableTile.vertices)
-            if self.tileOutline:
-                patch = mpatches.PathPatch(path, edgecolor = None, facecolor = color, alpha=self.alpha)
-            else:
-                patch = mpatches.PathPatch(path, edgecolor = color, facecolor = color, alpha=self.alpha)
-            self.stablePatches.append(patch)
+        self.specialTiles = []
+        ## Boundaries and invalid set
+        self.borderSet, self.invalidSets, self.borderColor, self.invalidColors = borderSet, invalidSets, borderColor, invalidColors
+        self.borderVal, self.invalidVals = borderVal, invalidVals
+        self.dispBorder, self.dispInvalid = dispBorder, dispInvalid
 
     ###########################
     ## Generate Shift Vector ##
@@ -215,13 +108,29 @@ class Multigrid:
             samp1, samp2 = sample[0]/2, sample[1]/2
             final = self.sC - samp1 - samp2
             return [samp1, samp2, final]
-        ## Even dimmensions
+        popMultiplier = 1
+        samplePopulation = list(range(1, popMultiplier*self.dim))
+        ## Even dimmensions, something is going wrong here
         if self.dim%2==0:
             lB = math.floor((self.dim/2)-1)
+            samp = rd.sample(samplePopulation, lB)
+            samp.sort()
             sV = []
             for i in range(lB):
-                sV.append((i+1)/self.dim)
-                sV.append(-(i+1)/self.dim)
+                if byHalves:
+                    if random:
+                        sV.append(samp[i]/2)
+                        sV.append(-samp[i]/2)
+                    else:
+                        sV.append((i+1)/2)
+                        sV.append(-(i+1)/2)
+                else:
+                    if random:
+                        sV.append(samp[i]/(self.dim+5))
+                        sV.append(-samp[i]/(self.dim+5))
+                    else:
+                        sV.append((i+1)/self.dim)
+                        sV.append(-(i+1)/self.dim)
             sV.append((1/3)*self.sC)
             sV.append((2/3)*self.sC)
             return sV
@@ -229,11 +138,9 @@ class Multigrid:
         else:
             lB = math.floor((self.dim-1)/2)
             uB = math.ceil((self.dim-1)/2)
-            sV = []
-            popMultiplier = 1
-            samplePopulation = list(range(1, popMultiplier*self.dim))
             samp = rd.sample(samplePopulation, lB)
             samp.sort()
+            sV = []
             for i in range(lB):
                 if byHalves:
                     if not random:
@@ -254,6 +161,30 @@ class Multigrid:
             sV += [self.sC]
             return sV
 
+    #############################################
+    ## Generate Adjacency Matrix Of Tile Types ##
+    #############################################
+    def genttm(self):
+        ## Intent: Find the tile type of all tiles
+        if self.dim%2 == 0:
+            numTileTypes = int((self.dim/2)-1)
+        else:
+            numTileTypes = int((self.dim-1)/2)
+        self.numTileTypes = numTileTypes
+        ## create tile type adjacency matrix
+        ttm = [[0 for x in range(self.dim)] for y in range(self.dim)]
+        for x in range(self.dim):
+            for y in range(1, self.numTileTypes+1):
+                if x+y >= self.dim:
+                    ttm[x][(x+y)-self.dim] = y-1
+                else:
+                    ttm[x][x+y] = y-1
+                ttm[x][x-y] = y-1
+        return ttm
+
+    #####################################
+    ## Generate Vertices For All Tiles ##
+    #####################################
     def genTilingVerts(self):
         self.multiGrid = [[[[None for b in range(-self.size, self.size+1)] for s in range(self.dim)] for a in range(-self.size, self.size+1)] for r in range(self.dim)]
         self.allTiles = []
@@ -263,7 +194,7 @@ class Multigrid:
                     for b in range(-self.size, self.size+1):
 
                         tileType = self.ttm[r][s]
-                        self.allTiles.append(tuple([r, a, s, b]))
+                        self.allTiles.append((r, a, s, b))
                         
                         p_rs_ab = MultigridCell(self.dim, r, s, a, b, self.shiftVect[r], self.shiftVect[s], tileType)
                         p_rs_ab.setStability(False)
@@ -277,6 +208,100 @@ class Multigrid:
                         p_rs_ab.setVertices(vList)
                         self.multiGrid[r][a][s][b] = p_rs_ab
 
+    def tileParamToVertices(self, r, s, a, b):
+        ## Return a generator object of tile vertices
+        normVect = self.genNormVect()
+        ## kp is the tile cordinate calculated by using the k function to project the coordinates of some p in G
+        if normVect[s-r].imag == 0:
+            kp = 1j*(normVect[r]*(b-self.shiftVect[s]) - normVect[s]*(a-self.shiftVect[r])) / 0.00001
+        else:
+            kp = 1j*(normVect[r]*(b-self.shiftVect[s]) - normVect[s]*(a-self.shiftVect[r])) / normVect[s-r].imag
+        k = [0--((kp/i).real+t)//1 for i, t in zip(normVect, self.shiftVect)]
+        for k[r], k[s] in [(a, b), (a+1, b), (a+1, b+1), (a, b+1)]:
+            yield sum(x*t for t, x in zip(normVect, k))
+    
+    def imagToReal(self, vertices):
+        for vertex in vertices:
+            scaledVert = self.tileSize*vertex
+            yield from (scaledVert.real, scaledVert.imag)
+
+    def genNormVect(self):
+        return [(-1)**((2/self.dim)*i) for i in range(self.dim)]
+
+
+    ###########################################
+    ## Generate Neighbourhoods For All Tiles ##
+    ###########################################
+    def genTileNeighbourhoods(self):
+        ## For each tile, we give it a set of indices {[t.r, t.a, t.s, t.b],...} that can be used to iterate over
+        ## to check the tile's local neighbourhood's values
+        #
+        ## We wish to make a dictionary w/ the keys containing all the vertices in G, where
+        ## each key maps to a set of tiles that contain that vertex.
+        ##
+        ## We do this heavy lifting with sets by converting the list indices into strings
+        ## this does afterall take O(n^2*k^2) time
+        vertexToTileSet = {}
+        for r in range(self.dim):
+            for a in range(-self.size, self.size+1):
+                for s in range(r+1, self.dim):
+                    for b in range(-self.size, self.size+1):
+                        t = self.multiGrid[r][a][s][b]
+                        t.nonDiagTileNeighbourhood = []
+                        t.diagTileNeighbourhood = []
+                        for vertex in  t.vertices:
+                            indexAsStr = f"{t.r} {t.a} {t.s} {t.b}"
+                            if vertex in vertexToTileSet.keys():
+                                neighbourhoodSet = vertexToTileSet.get(vertex)
+                                neighbourhoodSet.add(indexAsStr)
+                                vertexToTileSet.update({vertex : neighbourhoodSet})
+                            else:
+                                neighbourhoodSet = set()
+                                neighbourhoodSet.add(indexAsStr)
+                                vertexToTileSet.update({vertex : neighbourhoodSet})
+        setOfNeighbourhoodSets = vertexToTileSet.values()
+        listOfNeighbourhoodLists = []
+        for neighbourhoodSet in setOfNeighbourhoodSets:
+            neighbourhoodList = []
+            for tile in neighbourhoodSet:
+                tileIndices = tile[:]
+                tileIndices = [int(i) for i in tileIndices.split(' ')]
+                neighbourhoodList.append(tileIndices)
+            listOfNeighbourhoodLists.append(neighbourhoodList)
+        ## For each neighbourhood list in list of neighbourhood lists
+        visited = set()
+        for neighbourhoodList in listOfNeighbourhoodLists:
+            neighbourhoodListCopy = neighbourhoodList[:]
+            ## For each tile index in this neighbourhood
+            for tileIndex in neighbourhoodList:
+                tile = self.multiGrid[tileIndex[0]][tileIndex[1]][tileIndex[2]][tileIndex[3]]
+                if tuple(tileIndex) in visited:
+                    tnh = tile.neighbourhood
+                    tempNeighbourhood = neighbourhoodListCopy.copy()
+                    tempNeighbourhood = [i for i in tempNeighbourhood if not i in tnh if not i is tileIndex]
+                    tnh.extend(tempNeighbourhood)
+                    tile.neighbourhood = tnh
+                else:
+                    neighbourhoodList = []
+                    neighbourhoodList = neighbourhoodListCopy.copy()
+                    neighbourhoodList = [i for i in neighbourhoodList if not i is tileIndex]
+                    tile.neighbourhood = neighbourhoodList
+                    visited.add(tuple(tileIndex))
+    def genNonDiagTileNeighbourhoods(self):
+        for r in range(self.dim):
+            for a in range(-self.size, self.size+1):
+                for s in range(r+1, self.dim):
+                    for b in range(-self.size, self.size+1):
+                        p_rs_ab = self.multiGrid[r][a][s][b]
+                        for nInd in p_rs_ab.neighbourhood:
+                            n = self.multiGrid[nInd[0]][nInd[1]][nInd[2]][nInd[3]]
+                            ## If a tile and its neighbour share two vertices, aka they share an edge
+                            if len(set(p_rs_ab.vertices).intersection(set(n.vertices))) == 2:
+                                p_rs_ab.nonDiagTileNeighbourhood = p_rs_ab.nonDiagTileNeighbourhood + [nInd]
+                            else:
+                                p_rs_ab.diagTileNeighbourhood = p_rs_ab.diagTileNeighbourhood + [nInd]
+        
+    
     #############################
     ## Generate Initial Tiling ##
     #############################
@@ -300,18 +325,21 @@ class Multigrid:
                         if(r==0 and s==1 and a==0 and b==0):
                             self.zero = [vertices[0][0], vertices[0][1]]
 
-                        
-                        if len(p_rs_ab.neighbourhood) in {0, 1, 2, 3, 4, 5, 6}:
-                            p_rs_ab.setVal(-1)
-                            p_rs_ab.setColor(self.invalidColor)
-                            if self.dispBorder:
-                                self.invalidTiles.append(p_rs_ab_ind)
-                                self.numInvalid += 1
+                        ## Invalid value
                         if p_rs_ab_ind in self.invalidSet:
-                            p_rs_ab.setVal(-1)
-                            p_rs_ab.setColor(self.invalidColor)
+                            for i, invalidSet in enumerate(self.invalidSets):
+                                if p_rs_ab_ind in invalidSet:
+                                    p_rs_ab.setVal(self.invalidVals[i])
+                                    p_rs_ab.setColor(self.invalidColors[i])
                             if self.dispInvalid:
-                                self.invalidTiles.append(p_rs_ab_ind)
+                                self.specialTiles.append(p_rs_ab_ind)
+                                self.numInvalid += 1
+                        ## Border Value
+                        elif len(p_rs_ab.neighbourhood) in self.borderSet:
+                            p_rs_ab.setVal(self.borderVal)
+                            p_rs_ab.setColor(self.borderColor)
+                            if self.dispBorder:
+                                self.specialTiles.append(p_rs_ab_ind)
                                 self.numInvalid += 1
                         ## Game Of Life
                         elif self.gol:
@@ -324,11 +352,6 @@ class Multigrid:
                                 p_rs_ab.setColor('white')
                                 p_rs_ab.setVal(0)
                                 self.values.append(0)
-                        ## If the grid is not valued, value defaults to the tile type
-                        elif not self.isValued:
-                            p_rs_ab.setColor(self.boundToCol.get(tileType+1))
-                            p_rs_ab.setVal(tileType)
-                            self.values.append(tileType)
                         ## Randomly Valued
                         elif self.initialValue[0]:
                             val = rd.randrange(1, self.numStates+1)
@@ -362,6 +385,7 @@ class Multigrid:
                             self.values.append(val)
                         ## Tile Type Valued
                         elif self.initialValue[3]:
+                            tileType = p_rs_ab.tileType
                             sampleDef = 1000
                             val=rd.randrange(tileType, (tileType+1)*sampleDef)/sampleDef
                             ## In order to avoid 0 and 1 being in same bound, add 1.
@@ -371,12 +395,11 @@ class Multigrid:
                         ## Why do I need to do this?
                         self.multiGrid[r][a][s][b] = p_rs_ab
         self.numTiles = len(self.values)
-        self.gridValAvg = sum(self.values)/self.numTiles
+        self.valAvg = sum(self.values)/self.numTiles
         valStdDev = 0
         for value in self.values:
-            valStdDev += (value-self.gridValAvg)**2
+            valStdDev += (value-self.valAvg)**2
         self.valStdDev = math.sqrt(valStdDev/self.numTiles)
-
 
     ########################
     ## Update Grid States ##
@@ -391,14 +414,17 @@ class Multigrid:
                             boundToCol=self.boundToCol, boundToPC=self.boundToPC,
                             isBoundaried=self.isBoundaried, bounds=self.bounds, boundaryApprox=self.boundaryApprox,
                             gol=self.gol, tileOutline=self.tileOutline, alpha=self.alpha, printGen=self.printGen,
-                            invalidSet=self.invalidSet, invalidColor=self.invalidColor, dispBorder=self.dispBorder, dispInvalid=self.dispInvalid)
-        nextGrid.multiGrid, nextGrid.zero = self.multiGrid, self.zero
-        nextGrid.values, nextGrid.numTiles, nextGrid.gridValAvg, nextGrid.valStdDev = self.values, self.numTiles, self.gridValAvg, self.valStdDev
-        nextGrid.invalidTiles, nextGrid.numInvalid = self.invalidTiles, self.numInvalid
+                            borderSet=self.borderSet, invalidSets=self.invalidSets, borderColor=self.borderColor, invalidColors=self.invalidColors,
+                            borderVal=self.borderVal, invalidVals=self.invalidVals, dispBorder=self.dispBorder, dispInvalid=self.dispInvalid)
+        nextGrid.multiGrid, nextGrid.zero = copy.deepcopy(self.multiGrid), self.zero
+        nextGrid.numTiles = self.numTiles
+        nextGrid.invalidSet = self.invalidSet
         
         self.values = []
         self.colValDict = {}
         self.stableTiles = []
+
+
         ## Iterate claiscally over each tile in grid
         if self.ptIndex == 0 or (not self.isBoundaried) or self.gol:
             for r in range(self.dim):
@@ -413,32 +439,28 @@ class Multigrid:
         ## Iterate over the unstable tiles
         else:
             prevUnstableTiles = self.unstableTiles
+            
             # if self.dispInvalid:
-            #     for tile in self.invalidTiles:
+            #     for tile in self.specialTiles:
             #         prevUnstableTiles.append(tile)
             self.unstableTiles = []
             for tInd in prevUnstableTiles:
                 oldTile = self.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
                 newTile = nextGrid.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
                 newTile.neighbour = oldTile.neighbourhood
-                self.genNextTile(oldTile, newTile)
-
-
-
-                
+                self.genNextTile(oldTile, newTile)      
         self.unstableTiles = list(set(self.unstableTiles))
-        self.numTiles = len(self.values)
-        self.valAvg = sum(self.values)/self.numTiles
-        self.valStdDev = math.sqrt(sum([(val-self.valAvg)**2 for val in self.values])/self.numTiles)
+        nextGrid.numTiles = len(self.values)
+        nextGrid.valAvg = sum(self.values)/self.numTiles
+        nextGrid.valStdDev = math.sqrt(sum([(val-nextGrid.valAvg)**2 for val in self.values])/self.numTiles)
         if not self.gol:
             nextGrid.unstableTiles = self.unstableTiles
-            nextGrid.invalidTiles = self.invalidTiles
+            nextGrid.specialTiles = self.specialTiles
             ##########################################
             ## This code creates a patch that does not need to be checked next round
-            ## self.addToStablePatch(self.stableTiles)
+            #self.addToStablePatch(self.stableTiles)
             ##########################################
         nextGrid.stablePatches = self.stablePatches
-
         if boundaried:
             nextGrid.genBoundaryList()
             if self.ptIndex >= self.printGen:
@@ -451,22 +473,23 @@ class Multigrid:
         self.totalPercent = (self.numStable + self.numUnstable)/self.numTilesInGrid
         self.normPercentStable = self.numStable/(self.numStable+self.numUnstable)
         self.normPercentUnstable = self.numUnstable/(self.numStable+self.numUnstable)
-
         if animating:
             return nextGrid, self.ax
-        return nextGrid
+        return nextGrid     
 
     def genNextTile(self, oldTile, newTile):
-        if len(oldTile.neighbourhood) in {0, 1, 2, 3, 4, 5, 6}:
-            newTile.setVal(-1)
-            newTile.setColor(self.invalidColor)
-        elif oldTile.val == -1:
-            newTile.setVal(-1)
-            newTile.setColor(self.invalidColor)
+        if (oldTile.r, oldTile.a, oldTile.s, oldTile.b) in self.invalidSet:
+            for i, invalidSet in enumerate(self.invalidSets):
+                if (oldTile.r, oldTile.a, oldTile.s, oldTile.b) in invalidSet:
+                    newTile.setVal(self.invalidVals[i])
+                    newTile.setColor(self.invalidColors[i])
+        elif len(oldTile.neighbourhood) in self.borderSet:
+            newTile.setVal(self.borderVal)
+            newTile.setColor(self.borderColor)
         elif self.gol:
             self.updateTileValsGOL(oldTile, newTile)
         else:
-            self.updateTileVals(oldTile, newTile)
+            newTile = self.updateTileVals(oldTile, newTile)
         if type(oldTile.color) is list:
             col = tuple(oldTile.color)
         col = tuple(oldTile.color) if type(oldTile.color) is list else oldTile.color
@@ -475,108 +498,7 @@ class Multigrid:
             self.colValDict[col] += 1
         else:
             self.colValDict[col] = 1
-        self.values.append(oldTile.val)
-
-    ###########################################
-    ## Generate Neighbourhoods For All Tiles ##
-    ###########################################
-    def genTileNeighbourhoods(self):
-        ## For each tile, we give it a set of indices {[t.r, t.a, t.s, t.b],...} that can be used to iterate over
-        ## to check the tile's local neighbourhood's values
-        #
-        ## We wish to make a dictionary w/ the keys containing all the vertices in Gngamma, where
-        ## each key maps to a set of tiles that contain that vertex.
-        ##
-        ## We do this heavy lifting with sets by converting the list indices into strings
-        ## this does afterall take O(n^2*k^2) time
-        vertexToTileSet = {}
-        for r in range(self.dim):
-            for a in range(-self.size, self.size+1):
-                for s in range(r+1, self.dim):
-                    for b in range(-self.size, self.size+1):
-                        t = self.multiGrid[r][a][s][b]
-                        for vertex in  t.vertices:
-                            indexAsStr = f"{t.r} {t.a} {t.s} {t.b}"
-                            if vertex in vertexToTileSet.keys():
-                                tileSet = vertexToTileSet.get(vertex)
-                                tileSet.add(indexAsStr)
-                                vertexToTileSet.update({vertex : tileSet})
-                            else:
-                                neighbourhoodSet = set()
-                                neighbourhoodSet.add(indexAsStr)
-                                vertexToTileSet.update({vertex : neighbourhoodSet})
-        setOfNeighbourhoodSets = vertexToTileSet.values()
-        listOfNeighbourhoodLists = []
-        for neighbourhoodSet in setOfNeighbourhoodSets:
-            neighbourhoodList = []
-            for tile in neighbourhoodSet:
-                tileIndices = tile[:]
-                tileIndices = [int(i) for i in tileIndices.split(' ')]
-                neighbourhoodList.append(tileIndices)
-            listOfNeighbourhoodLists.append(neighbourhoodList)
-        ## For each neighbourhood list in list of neighbourhood lists
-        visited = set()
-        for neighbourhoodList in listOfNeighbourhoodLists:
-            neighbourhoodListCopy = neighbourhoodList[:]
-            ## For each tile index in this neighbourhood
-            for tileIndex in neighbourhoodList:
-                tile = self.multiGrid[tileIndex[0]][tileIndex[1]][tileIndex[2]][tileIndex[3]]
-                if tuple(tileIndex) in visited:
-                    tnh = tile.neighbourhood
-                    tempNeighbourhood = neighbourhoodListCopy.copy()
-                    tempNeighbourhood = [i for i in tempNeighbourhood if not i in tnh if not i is tileIndex]
-                    tnh.extend(tempNeighbourhood)
-                    tile.neighbourhood = tnh
-                else:
-                    neighbourhoodList = []
-                    neighbourhoodList = neighbourhoodListCopy.copy()
-                    neighbourhoodList = [i for i in neighbourhoodList if not i is tileIndex]
-                    tile.neighbourhood = neighbourhoodList
-                    visited.add(tuple(tileIndex))
-
-    #########################
-    ## Generate Boundaries ##
-    #########################
-    def genBoundaryList(self):
-        ## A list that contains lists where each contained list contains a collection of unstable tile indexes representing the boundaries on an object
-        listOfBoundaryLists = []
-        ## A dictionary that maps from a tile index to the boundarylist index it belongs to in listOfBoundaryLists
-        tileIndToBoundaryListInd = dict()
-
-        for tInd in self.unstableTiles:
-            t = self.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
-            tBound = self.valToBound(t.val)
-
-            ## First we create a list of neighbours that are in the same state
-            boundedNeighbours = []
-            for neighbour in t.neighbourhood:
-                n = self.multiGrid[neighbour[0]][neighbour[1]][neighbour[2]][neighbour[3]]
-                if (self.valToBound(n.val) == tBound) and (not n.isStable):
-                    boundedNeighbours.append(tuple(neighbour))
-                        
-            ## If there are no neighbours of this state, we create a new boundary object
-            if len(boundedNeighbours):
-                if (not t.isStable) or (t.val==-1):
-                    listOfBoundaryLists.append([tInd])
-                    tileIndToBoundaryListInd[tInd] = len(listOfBoundaryLists)-1
-            ## If there are same-stated neighbours
-            else:
-                newObjectList = [tInd]
-                ## We find the union of all their boundaries
-                for neighbourInd in boundedNeighbours:
-                    neighbourObjInd = tileIndToBoundaryListInd.get(neighbourInd)
-                    if neighbourObjInd != None:
-                        objList = listOfBoundaryLists[neighbourObjInd]
-                        newObjectList.extend([obj for obj in objList])
-                        ## We discard the original tuple set that is not independent but rather part of a hole
-                        listOfBoundaryLists[neighbourObjInd] = []
-                listOfBoundaryLists.append(newObjectList)
-
-                ## And map their indexes to the newObjectList union list
-                for neighbourInd in newObjectList:
-                    tileIndToBoundaryListInd[neighbourInd] = len(listOfBoundaryLists)-1
-        self.listOfBoundaryLists = [boundry for boundry in listOfBoundaryLists if boundry != []]
-        self.numBoundaries = len(self.listOfBoundaryLists)
+        self.values.append(oldTile.val) 
 
     ########################
     ## Tile Value Updates ##
@@ -591,8 +513,8 @@ class Multigrid:
             n = self.multiGrid[neighbour[0]][neighbour[1]][neighbour[2]][neighbour[3]]
             oldTileneighbourValTotal += n.val
             nBound = self.valToBound(n.val)
-            ## Check if neighbours are invalid or unstable
-            if (n.val==-1) or (nBound!=currBound):
+            ## Check if neighbours are invalid, a border or unstable
+            if (tuple(neighbour) in self.invalidSet) or (len(n.neighbourhood) in self.borderSet) or (nBound!=currBound):
                 self.numUnstable += 1
                 oldTileisStable = False
                 oldTile.setStability(False)
@@ -641,6 +563,94 @@ class Multigrid:
         else:
             newTile.setVal(0)
             newTile.setColor('white')
+    def addToStablePatch(self, stableTiles):
+        for stableTileInd in stableTiles:
+            stableTile = self.multiGrid[stableTileInd[0]][stableTileInd[1]][stableTileInd[2]][stableTileInd[3]]
+            color = self.boundToCol.get(self.valToBound(stableTile.val))
+            if stableTileInd in self.invalidSet or len(stableTile.neighbourhood) in self.borderSet:
+                if self.dispInvalid:
+                    for i, invalidSet in enumerate(self.invalidSets):
+                        if stableTileInd in invalidSet:
+                            color = self.invalidColors[i]
+                else:
+                    return
+            elif len(stableTile.neighbourhood) in self.borderSet:
+                if self.dispBorder:
+                    color = self.borderColor
+                else:
+                    return
+            path = self.genPath(stableTile.vertices)
+            if self.tileOutline:
+                patch = mpatches.PathPatch(path, edgecolor = None, facecolor = color, alpha=self.alpha)
+            else:
+                patch = mpatches.PathPatch(path, edgecolor = color, facecolor = color, alpha=self.alpha)
+            self.stablePatches.append(patch)
+    ## Update helper methods
+    def genPath(self, vertices):
+        ## Intent, create a closped polygon path object
+        Path = mpath.Path
+        path_data = [
+            (Path.MOVETO, vertices[0]),
+            (Path.LINETO, vertices[1]),
+            (Path.LINETO, vertices[2]),
+            (Path.LINETO, vertices[3]),
+            (Path.CLOSEPOLY, vertices[0]),
+            ]
+        codes, verts = zip(*path_data)
+        return mpath.Path(verts, codes)
+    def setValStats(self, numTiles, valAvg, valStdDev):
+        self.numTiles = numTiles
+        self.valAvg = valAvg
+        self.valStdDev = valStdDev 
+    def valToBound(self, val):
+        ## Search sorted is the perfect function for this application and does the job in O(log(n)) tc
+        ## Search sorted returns the index of the first number in self.bounds that is greater then or equal to val
+        return self.bounds[np.searchsorted(self.bounds, val)]     
+
+
+    #########################
+    ## Generate Boundaries ##
+    #########################
+    def genBoundaryList(self):
+        ## A list that contains lists where each contained list contains a collection of unstable tile indexes representing the boundaries on an object
+        listOfBoundaryLists = []
+        ## A dictionary that maps from a tile index to the boundarylist index it belongs to in listOfBoundaryLists
+        tileIndToBoundaryListInd = dict()
+
+        for tInd in self.unstableTiles:
+            t = self.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
+            tBound = self.valToBound(t.val)
+
+            ## First we create a list of neighbours that are in the same state
+            boundedNeighbours = []
+            for neighbour in t.neighbourhood:
+                n = self.multiGrid[neighbour[0]][neighbour[1]][neighbour[2]][neighbour[3]]
+                if (self.valToBound(n.val) == tBound) and (not n.isStable):
+                    boundedNeighbours.append(tuple(neighbour))
+                        
+            ## If there are no neighbours of this state, we create a new boundary object
+            if len(boundedNeighbours):
+                if (not t.isStable) or (tInd in self.specialTiles) or (len(t.neighbourhood) in self.borderSet):
+                    listOfBoundaryLists.append([tInd])
+                    tileIndToBoundaryListInd[tInd] = len(listOfBoundaryLists)-1
+            ## If there are same-stated neighbours
+            else:
+                newObjectList = [tInd]
+                ## We find the union of all their boundaries
+                for neighbourInd in boundedNeighbours:
+                    neighbourObjInd = tileIndToBoundaryListInd.get(neighbourInd)
+                    if neighbourObjInd != None:
+                        objList = listOfBoundaryLists[neighbourObjInd]
+                        newObjectList.extend([obj for obj in objList])
+                        ## We discard the original tuple set that is not independent but rather part of a hole
+                        listOfBoundaryLists[neighbourObjInd] = []
+                listOfBoundaryLists.append(newObjectList)
+
+                ## And map their indexes to the newObjectList union list
+                for neighbourInd in newObjectList:
+                    tileIndToBoundaryListInd[neighbourInd] = len(listOfBoundaryLists)-1
+        self.listOfBoundaryLists = [boundry for boundry in listOfBoundaryLists if boundry != []]
+        self.numBoundaries = len(self.listOfBoundaryLists)
         
     ##########################
     ## Grid Display Methods ##
@@ -649,7 +659,6 @@ class Multigrid:
     def displayTiling(self):
         self.setFigExtras()
         self.patches = []
-        colorList = sns.cubehelix_palette(self.numTileTypes, dark=0, light=0.8)
         for r in range(self.dim):
             for a in range(-self.size, self.size+1):
                 for s in range(r+1, self.dim):
@@ -657,50 +666,57 @@ class Multigrid:
                         t = self.multiGrid[r][a][s][b]
                         vertices = t.vertices
                         path = self.genPath(vertices)
-                        color = colorList[self.ttm[r][s]]
-                        if t.val == -1 or len(t.neighbourhood) in {0, 1, 2, 3, 4, 5, 6}:
+                        #color = self.colors[self.ttm[r][s]]
+                        ## Check if the tile is invalid
+                        if (r, a, s, b) in self.invalidSet:
                             if self.dispInvalid:
-                                color = self.invalidColor
-                            else:
-                                break
-                        if self.gol:
+                                for i, invalidSet in enumerate(self.invalidSets):
+                                    if (r, a, s, b) in invalidSet:
+                                        color = self.invalidColors[i]
+                                        break                            
+                        ## Check if the tile is in the outer boundaries
+                        elif len(t.neighbourhood) in self.borderSet:
+                            if self.dispBorder:
+                                color = self.borderColor
+                            # Adaptive Background
+                            #################################################################
+                            adaptiveBoundary = False
+                            if adaptiveBoundary:
+                                if self.ptIndex > 0:
+                                    bound = self.valToBound(self.valAvg)
+                                    ### THIS BECOMES EXPENSIVE
+                                    # boundInd = self.bounds.index(bound)
+                                    boundInd = np.searchsorted(self.bounds, bound)
+                                    if boundInd == 0:
+                                        val = rd.randrange(0, bound+1)
+                                    else:
+                                        val = rd.randrange(self.bounds[boundInd-1], bound+1)
+                                    color = self.boundToCol.get(bound)
+                                    t.setColor(color)
+                                    t.setVal(val)
+                            ################################################################
+                        elif self.gol:
                             if t.val==0:
                                 color = 'white'
                             else:
                                 color = 'black'
-                        # The end
-                        elif tuple([r, a, s, b]) in self.invalidSet:
-                            if self.dispInvalid:
-                                color = self.invalidColor
-                            else:
-                                break
-                        # Adaptive Background
-                        # elif abs(a)==self.size or abs(b)==self.size:
-                        #     if self.ptIndex > 0:
-                        #         bound = self.valToBound(self.gridValAvg)
-                        #         ### THIS BECOMES EXPENSIVE
-                        #         # boundInd = self.bounds.index(bound)
-                        #         boundInd = np.searchsorted(self.bounds, bound)
-                        #         if bound <= 1:
-                        #             val = rd.randrange(0, bound+1)
-                        #         else:
-                        #             val = rd.randrange(self.bounds[boundInd-1], bound)
-                        #         color = self.boundToCol.get(bound)
-                        #         t.setColor(color)
-                        #         t.setVal(val)
-                        # Origin
-                        # Playable Space
-                        elif self.isValued:
+                        else:
                             color = t.color
+                        # Origin
+                        # End
+                        # Playable Space
+
+                        ## Create patch and continue
                         if self.tileOutline:
                             patch = mpatches.PathPatch(path, edgecolor = None, facecolor = color, alpha=self.alpha)
                         else:
                             patch = mpatches.PathPatch(path, edgecolor = color, facecolor = color, alpha=self.alpha)
                         self.ax.add_patch(patch)
                         self.patches.append(patch)
+        ## If the pt is the original, manually return the first figure
         if self.ptIndex==0:
             return self.ax
-    ## Display only boundaries
+    ## Display boundaries
     def displayBoundaries(self):
         self.setFigExtras()
         #for stablePatch in self.stablePatches:
@@ -713,7 +729,7 @@ class Multigrid:
             sampColor = self.boundToCol.get(self.valToBound(samp.val))
             for index in boundary:
                 t = self.multiGrid[index[0]][index[1]][index[2]][index[3]]
-                if tuple(index) in self.invalidSet or len(t.neighbourhood) in {0, 1, 2, 3, 4, 5, 6}:
+                if tuple(index) in self.invalidSet or len(t.neighbourhood) in self.borderSet:
                     continue
                 else:
                     color = sampColor
@@ -721,16 +737,35 @@ class Multigrid:
                 patch = mpatches.PathPatch(path, edgecolor = None, facecolor = color, alpha=self.alpha) if self.tileOutline else mpatches.PathPatch(path, edgecolor = color, facecolor = color, alpha=self.alpha)
                 self.ax.add_patch(patch)
                 self.patches.append(patch)
-        for index in self.invalidTiles:
+        for index in self.specialTiles:
+            if index in self.invalidSet:
+                for i, invalidSet in enumerate(self.invalidSets):
+                    if index in invalidSet:
+                        color = self.invalidColors[i]
+            else:
+                color = self.borderColor
             t = self.multiGrid[index[0]][index[1]][index[2]][index[3]]
             path = self.genPath(t.vertices)
-            patch = mpatches.PathPatch(path, edgecolor = None, facecolor = self.invalidColor, alpha=self.alpha) if self.tileOutline else mpatches.PathPatch(path, edgecolor = self.invalidColor, facecolor = self.invalidColor, alpha=self.alpha)
+            patch = mpatches.PathPatch(path, edgecolor = None, facecolor = color, alpha=self.alpha) if self.tileOutline else mpatches.PathPatch(path, edgecolor = color, facecolor = color, alpha=self.alpha)
             self.ax.add_patch(patch)
             self.patches.append(patch)
+    ## Display helper methods
+    def setFigExtras(self):
+        #ax.grid()
+        lim = 10
+        bound = lim*(self.size+self.dim+1)**1.2
+        self.ax.set_xlim(-bound + self.zero[0], bound + self.zero[0])
+        self.ax.set_ylim(-bound + self.zero[1], bound + self.zero[1])
+        if self.dim < 7:
+            shiftVectStr = ', '.join(str(round(i,1)) for i in self.shiftVect)
+            self.ax.set_title(f"n={self.dim}, size={self.size}, shiftConstant={self.sC}, shiftVect~[{shiftVectStr}]")
+        else:
+            shifts = [str(round(i,1)) for i in self.shiftVect]
+            self.ax.set_title(f"n={self.dim}, size={self.size}, shiftConstant={self.sC}, shiftVect~[{shifts[0]}, ..., {shifts[self.dim-1]}]")
 
-
-
-    
+    #############################
+    ## Non Implemented Methods ##
+    #############################
     def selectiveDisplay(self, backgroundCol, selection, selectionCol):
         for tInd in self.allTiles:
             t = self.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
@@ -741,16 +776,9 @@ class Multigrid:
             self.patches.append(patch)
         return self.ax
 
-
-
     def saveFigure(self):
         figPath = f'{self.rootPath}gen{self.ptIndex}.png'
         plt.savefig(figPath)
-
-
-
-
-
 
 
 ###################
@@ -758,17 +786,18 @@ class Multigrid:
 ###################
 def main():
     # dim up to 501 works for size = 1
-    dim = 5
-    sC = 0
-    size = 5
-    tileSize = 10
-    tileOutline = False
-    alpha = 1
-    shiftZeroes, shiftRandom, shiftByHalves = True, False, False
-    multi = Multigrid(dim, sC, size, tileSize, shiftZeroes, shiftRandom, shiftByHalves, tileOutline, alpha, time.time())
-    multi.genTiling()
-    multi.genTileNeighbourhoods()
-    multi.displayTiling()
+    # dim = 5
+    # sC = 0
+    # size = 5
+    # tileSize = 10
+    # tileOutline = False
+    # alpha = 1
+    # shiftZeroes, shiftRandom, shiftByHalves = True, False, False
+    # multi = Multigrid(dim, sC, size, tileSize, shiftZeroes, shiftRandom, shiftByHalves, tileOutline, alpha, time.time())
+    # multi.genTiling()
+    # multi.genTileNeighbourhoods()
+    # multi.displayTiling()
+    pass
 
 if __name__ == '__main__':
     main()

@@ -1,6 +1,11 @@
 # PenroseAutomata
 A series of algorithms to automate the PT calculated in the PenroseTiler repository
-The PenroseAutomata repository comprises five parts:
+
+# If Here For Pretty Pictures
+If you are here for the prety pictures and gifs, please go towards the bottom and skip the cs/math
+
+# The Directory
+The PenroseAutomata repository comprises four parts:
 - A 'src' folder, containing the scripts:
      - The main python scripts (MultigridList, Multigrid, MultigridCell)
      - The supplementary scripts (QuadTree)
@@ -9,37 +14,6 @@ The PenroseAutomata repository comprises five parts:
      - 'unfitMultigridData': contains the data of the tiles who do not survive past fitGen generations
 - An 'Examples' folder, where any permanent data can be saved, ie favorite tiles
 - A 'README.md' file, this is where we currently are
-
-# If Here For Pretty Pictures
-If you are here for the prety pictures and gifs, please go towards the bottom and skip the cs/math
-
-# How To Run
-To familiarize yourself with how these scripts work, run MultigridList.py locally via its main() method. Notice that this will create a folder in 'unfitMultigridData' or 'fitMultigridData' containing a gif of a cellular autonoma and two graphs.
-If the tiling automata survives to maxGen generations, the tiling folder will be palced in 'fitMultigridData', otherwise it will be placed in 'unfitMultigridData'.
-Everytime you run the multigridList file, it will clear 'unfitMultigridData' for you, therefore move the files you like to 'fitMultigridData'
-
-The Dimmension of the tiling is given by dim, and the size is given by size. Notice the tiling has (dim choose 2)*(2*size+1)^2 tiles.
-sC of 0 makes a true penrose tiling, while 1/2 makes a generalized tiling.
-Passing a value into shiftVect will initialize a tiling to a specific initial condition.
-shiftZeroes, shiftRandom, shiftByHalves should be tempered with at your discretion.
-isRadByDim, isRadBySize set streaked and radial initial conditions for the tiling respectively.
-numColors is the number of boundaries in the tiling, numStates is the number of total states. Notice that numStates >= numColors
-gol is a boolean, setting it to True sets and updates tile values in binary as the game of life does, this can be specified in Multigrid.updateTileValsGOL()
-
-Running these algorithms will generally involve creating MultigridList objects with different parameters. Feel free to tweak the files to your whims, currently the constructor will generate a gif saved to one of the local sub-directories. Creating a QuadTree object specifically involves creating a 4 dimensional MultigridList object and transferring its data back and forth between the grid and quadTree objects.
-
-# Brief History
-This repository exists in lieu of the PenroseTiler repository. The PenroseTiler repository itself comprises the scripts necessary to run a genetic algorithm used to find the set of valid functions that project from a generalize mother lattice to an arbitrary unitary tiling described by a series of tile objects stored in the multigrid. The tilings are evaluated using brute force to calculate the number of white (or untiled) pixels to then evaluate the fitness of several functions in tiling a plane given a lattice.
-
-Additionally, since the complexity of the calculation is so large, and the search complexity space so large O(g(dim, size, sC, sV, M)), where g(dim, size, sC, sV, M) is the
-bounding function of the order dim^2*size^2*sC*M (this is definitely a gross underestimate). Strictly speaking, the search space of the one to one function that maps from a generalized mother lattice in dimmension dim, to a generalized unitary tiling in R2. In order to map the entire complexity space, we would need more computational power than exists in the universe. Thus we need to do two things. First, we create an algorithm that can save the fitnesses of tilings, so that if a genetic tiling process core dumps, the previous generation is saved to an IO file. This however is still not enough, so far we have only insured that any work can be saved and built upon and thus redundant calculations avoided (also ultimately fitter tiles). And because the search space is so large, nothing short of a NEAT algorithm will ensure that we get to the solution as quickly as possible. Thus we are left to some analytical caltulating to do, lets first solve the system trivially. The projective function E(K(p_rs_ab)) is trivial when the shiftVectors are all approximately zero, yet form a non-singular grid. By limiting the sVs to (10^-10 less than sV_i less than 10^-3), and by discretizing: the R2 projection grid space, the sC selection space, and the M selection space to a definition of 0.001. By further limiting (3 less than dim less than 100) and by discretizing the sC selection space we reduce the search space to a fixed approximately 10^14 possible projective functions that map our ludicrously small trivial search space.
-
-After a few weeks of searching, the genetic algorithm was successful in finding two trivial solutions. One being that described the Laura Effinger, the other is a new method. Yet undiscovered: which tiles the grid where sC=0 by the function K(p_i)=round(E_i dotProd p_rs_ab + sV_i), oddly enough this produces a generalized tiling even though sC=0. Some other more technical details here are removed, such as additional parameters that are required for this new trivial solution.
-
-Using the trivial solutions we put some good candidate functions in and found a general function that accomplishes our task. The two trivial solutions are capable of producing generalized crystalline tilings while the generalized solution is much more robust and can handle many more shift vector initial conditions. This repository was created in order to provide a library of functions that act on the more robust of the projective functions.
-
-Some automata algorithms were rather difficult to create. Specifically the adaptive boundary algorithms that predicts and skips stable tiles as well as the adaptive boundary approximation which skips certain heavy (and honestly insignificant relative to the expense) calculations in order to predict approximately how a generalized automata distributes information over a system of tiles.
-
 
 # Examples
 ### Single Frame Tilings
@@ -131,3 +105,98 @@ Here we are on if nCount is greater than 4 and smaller than 7.
 If we shift the acceptance bounds down by one we get a quickly convergent algorithm, where we are left with some sample 10d pt gol oscillators.
 Here we are on if nCount is greater than 3 and smaller than 6.
 ![oscillatorSampleGOL.gif](Examples/oscillatorSampleGOL.gif "Sample oscillators from 10 dimmensions")
+
+# How To Run
+To familiarize yourself with how these scripts work, run MultigridList.py locally via its main() method. Notice that this will create a folder in 'unfitMultigridData' or 'fitMultigridData' containing a gif of a cellular autonoma and two graphs.
+If the tiling automata survives to maxGen generations, the tiling folder will be palced in 'fitMultigridData', otherwise it will be placed in 'unfitMultigridData'.
+Everytime you run the multigridList file, it will clear 'unfitMultigridData' for you, therefore move the files you like to 'fitMultigridData'
+
+     ## Resets the fit and unfit directories every script run
+     cleanFileSpace(True, fitClean=False, unfitClean=True)
+
+     ## The dimmension of the tiling
+     dim = 5
+     ## The size of the tiling
+     size = 5
+
+     ## Turn the outline of each tiles on or off, turn off for large tiles
+     tileOutline = True
+     ## The opacity of each tiling
+     alpha = 1
+
+     ## You can use this to overide any non properly tiled tilings
+     shiftVect = None
+     ## The method by which we generate the shift vector
+     shiftZeroes, shiftRandom, shiftByHalves = True, False, False
+     shiftProp = (shiftZeroes, shiftRandom, shiftByHalves)
+     ## The value that the shift vector adds to
+     sC = 0
+
+     ## The number of states a tiling can be in
+     numColors = 20
+     ## The size of the possibility space from which we define tile states
+     numStates = 10000
+     ## Turn this on to add slight randomization to the state transitions
+     boundaryReMap = True
+     ## Make a custom set of colors, better to leave this On
+     manualCols = True
+
+     ## The method by which we populate the tiling values: valuedRandomly, valuedByDim, valuedBySize, valuedByTT
+     initialValue = (True, False, False, False)
+
+     ## The minimum number of generations our animation survives
+     minGen = 20
+     ## The maximum number of generations before we terminate
+     maxGen = 20
+     ## The generation that defines whether or not a tiling is fit or unfit
+     fitGen = 21
+
+     ## Turn this on to represent the tiling as the minimal set of interacting value boundaries
+     isBoundaried = False
+     ## Setting boundary approx trades time complexity for calculating the exact tiling
+     ## Setting boundaryApprox as True improves time complexity and gives tiling approximation
+     boundaryApprox = False
+
+     ## Turn this on to change gamemode to GOL
+     gol = False
+
+     ## Turn this on to ensure the tiling survives to maxGen by turning off the internal autoStop
+     overide = False
+
+     ## The generation at which we start displaying the tiling, turn this to maxGen+1 to calculate large tile outcomes quickly
+     printGen = 0
+
+     ## The set of sizes of neighbourhoods from which we define that a tile is a border tile
+     borderSet = {0, 1, 2, 3, 4, 5, 6}
+     ## The color used to display the border
+     borderColor = 'black'
+     ## The constant value of the border
+     borderVal = numStates
+     ## Turn this on to display the border
+     dispBorder = True
+
+     ## A list of sets, each set contains tiles
+     invalidSets = [{...},...]
+     ## Each set of tiles has a color
+     invalidColors = ['white', 'white']
+     ## Each set of tiles has a value
+     invalidVals = [numStates, numStates]
+     ## Turn this on to display the invalid tiles
+     dispInvalid = True
+
+     ## The number of tiling we create
+     numIterations = 1
+
+Running these algorithms will generally involve creating MultigridList objects with different parameters. Feel free to tweak the files to your whims, currently the constructor will generate a gif saved to one of the local sub-directories. Creating a QuadTree object specifically involves creating a 4 dimensional MultigridList object and transferring its data back and forth between the grid and quadTree objects.
+
+# Brief History
+This repository exists in lieu of the PenroseTiler repository. The PenroseTiler repository itself comprises the scripts necessary to run a genetic algorithm used to find the set of valid functions that project from a generalize mother lattice to an arbitrary unitary tiling described by a series of tile objects stored in the multigrid. The tilings are evaluated using brute force to calculate the number of white (or untiled) pixels to then evaluate the fitness of several functions in tiling a plane given a lattice.
+
+Additionally, since the complexity of the calculation is so large, and the search complexity space so large O(g(dim, size, sC, sV, M)), where g(dim, size, sC, sV, M) is the
+bounding function of the order dim^2*size^2*sC*M (this is definitely a gross underestimate). Strictly speaking, the search space of the one to one function that maps from a generalized mother lattice in dimmension dim, to a generalized unitary tiling in R2. In order to map the entire complexity space, we would need more computational power than exists in the universe. Thus we need to do two things. First, we create an algorithm that can save the fitnesses of tilings, so that if a genetic tiling process core dumps, the previous generation is saved to an IO file. This however is still not enough, so far we have only insured that any work can be saved and built upon and thus redundant calculations avoided (also ultimately fitter tiles). And because the search space is so large, nothing short of a NEAT algorithm will ensure that we get to the solution as quickly as possible. Thus we are left to some analytical caltulating to do, lets first solve the system trivially. The projective function E(K(p_rs_ab)) is trivial when the shiftVectors are all approximately zero, yet form a non-singular grid. By limiting the sVs to (10^-10 less than sV_i less than 10^-3), and by discretizing: the R2 projection grid space, the sC selection space, and the M selection space to a definition of 0.001. By further limiting (3 less than dim less than 100) and by discretizing the sC selection space we reduce the search space to a fixed approximately 10^14 possible projective functions that map our ludicrously small trivial search space.
+
+After a few weeks of searching, the genetic algorithm was successful in finding two trivial solutions. One being that described the Laura Effinger, the other is a new method. Yet undiscovered: which tiles the grid where sC=0 by the function K(p_i)=round(E_i dotProd p_rs_ab + sV_i), oddly enough this produces a generalized tiling even though sC=0. Some other more technical details here are removed, such as additional parameters that are required for this new trivial solution.
+
+Using the trivial solutions we put some good candidate functions in and found a general function that accomplishes our task. The two trivial solutions are capable of producing generalized crystalline tilings while the generalized solution is much more robust and can handle many more shift vector initial conditions. This repository was created in order to provide a library of functions that act on the more robust of the projective functions.
+
+Some automata algorithms were rather difficult to create. Specifically the adaptive boundary algorithms that predicts and skips stable tiles as well as the adaptive boundary approximation which skips certain heavy (and honestly insignificant relative to the expense) calculations in order to predict approximately how a generalized automata distributes information over a system of tiles.

@@ -639,30 +639,30 @@ def main():
     cleanFileSpace(True, fitClean=False, unfitClean=True)
 
     dim = 5
-    sC = 0
     size = 5
+    sC = 0
+    
     tileOutline = True
     alpha = 1
+    
+    ## You can use this to overide any non properly tiled tilings
+    shiftVect = None
     shiftZeroes, shiftRandom, shiftByHalves = True, False, False
     shiftProp = (shiftZeroes, shiftRandom, shiftByHalves)
+    
+    numColors = 20
+    numStates = 10000
+    boundaryReMap = True
+    manualCols = True
 
     ## valuedRandomly, valuedByDim, valuedBySize, valuedByTT
     initialValue = (True, False, False, False)
-    #valuedRandomly, valuedByDim, valuedBySize, valuedByTT = False, False, True, False
-
-    numColors = 20
-    numStates = 10000
-    manualCols = True
 
     minGen = 20
     maxGen = 20
     fitGen = 21
 
-    ## You can use this to overide any non properly tiled tilings
-    shiftVect = None
-
     isBoundaried = False
-    boundaryReMap = True
     ## Setting boundary approx trades time complexity for calculating the exact tiling
     ## Setting boundaryApprox as True improves time complexity and gives tiling approximation
     boundaryApprox = False
@@ -676,6 +676,7 @@ def main():
     printGen = 0
 
     borderSet = {0, 1, 2, 3, 4, 5, 6}
+    
     invalidSets = []
 
     invalidSet = set()

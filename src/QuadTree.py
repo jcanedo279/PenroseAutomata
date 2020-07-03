@@ -3,6 +3,7 @@ import glob
 import math
 import time
 
+import numpy as np
 import random as rd
 
 from MultigridList import MultigridList
@@ -20,18 +21,29 @@ class QuadNode:
         self.isCompletelyHashed = False
 
 class QuadTree:
-    def __init__(self, dim, sC, size, numStates, numColors, tileOutline, alpha, isRadByDim, isRadBySize, maxGen):
-        self.dim = dim
+    def __init__(self, size,
+                 sC,
+                 numStates, numColors,
+                 initVal,
+                 minGen, maxGen, fitGen, printGen,
+                 tileOutline,
+                 borderSet={0,1,2,3,4,5,6}, borderColor='black', borderVal=0, dispBorder=True):
+        self.dim, self.size = 4, size
+        
         self.sC = sC
-        self.size = size
+        self.shiftZeroes, self.shiftRandom, self.shiftByHalves = True, False, False
+        shiftProperties = (self.shiftZeroes, self.shiftRandom, self.shiftByHalves)
 
-        self.numStates = numStates
-        self.numColors = numColors
+        self.numStates, self.numColors = numStates, numColors
+        
+        self.initVal=initVal
+        
+        self.minGen, self.maxGen, self.fitGen, self.printGen = minGen, maxGen, fitGen, printGen
 
         self.tileOutline = tileOutline
-        self.alpha = alpha
-        self.isRadByDim, self.isRadBySize = isRadByDim, isRadBySize
-        self.shiftZeroes, self.shiftRandom, self.shiftByHalves = True, False, False
+        
+        self.borderSet, self.borderColor, self.borderVal, self.dispBorder = borderSet, borderColor, borderVal, dispBorder
+
         self.tileSize = 10
 
         ## These paths are required for the MultigridList object to instantiate
@@ -41,13 +53,20 @@ class QuadTree:
         self.localPath = self.rootPath + self.gridPath
         self.localTrashPath = self.localPath.replace('MultigridListData', 'TrashLists')
 
-        self.maxGen = maxGen
 
         self.knownNodes = set()
-        self.quadToNode = dict()
-        shiftProperties = (self.shiftZeroes, self.shiftRandom, self.shiftByHalves)
-        self.mList = MultigridList(self.dim, self.sC, self.size, self.tileSize, shiftProperties, self.tileOutline, self.alpha, self.numColors, self.maxGen, self.maxGen,
-                                   isValued=True, valIsRadByDim=self.isRadByDim, valIsRadBySize=self.isRadBySize, numStates=self.numStates)
+        self.quadToNode = dict() 
+        
+        self.mList = MultigridList(self.dim, self.size,
+                                   sC=self.sC, sP=shiftProperties,
+                                   numColors=self.numColors, numStates=self.numStates,
+                                   initialValue=self.initVal,
+                                   minGen=self.minGen, maxGen=self.maxGen, fitGen=self.fitGen, printGen=self.printGen,
+                                   tileOutline=self.tileOutline,
+                                   borderSet=self.borderSet, borderColor=self.borderColor, borderVal=self.borderVal, dispBorder=self.dispBorder,
+                                   iterationNum=0, captureStatistics=True)
+        
+        
         ## Store the grid locally inside of this object, this avoids messing with the generations in MultigridList
         self.origGrid = self.mList.currentGrid
         ## Uses genValMap, findRootTile, and findNeighbour to convert gridList's projected tiling into a valued 2d list
@@ -62,11 +81,20 @@ class QuadTree:
         #rootTileInd = findRootTile()
         rootTileInd = [0, -self.size, 1, -self.size]
         currTileInd = rootTileInd
+        
+        if not self.borderSet=={0,1,2,3,4,5,6}:
+            playableSideLen = 0
+            while currTileInd!=[1, -self.size, 2, -self.size]:
+                playableSideLen += 1
+                currTileInd = self.findNeighbour(currTileInd, rightN=True)
+        else:
+            ## Skip over the border value
+            currTileInd = self.findNeighbour(currTileInd, bottomRightN=True)
 
-        playableSideLen = 0
-        while currTileInd!=[1, -self.size, 2, -self.size]:
-            playableSideLen += 1
-            currTileInd = self.findNeighbour(currTileInd, rightN=True)
+            playableSideLen = 0
+            while not len(self.origGrid.multiGrid[currTileInd[0]][currTileInd[1]][currTileInd[2]][currTileInd[3]].neighbourhood) in self.borderSet:
+                playableSideLen += 1
+                currTileInd = self.findNeighbour(currTileInd, rightN=True)
 
 
         maxDepth = math.floor(math.log(playableSideLen, 2))
@@ -199,28 +227,84 @@ class QuadTree:
                 self.printQuadTreeNodes(currNode.topLeft, allNodes=allNodes, dispid=dispid)
             if currNode.topRight != None:
                 self.printQuadTreeNodes(currNode.topRight, allNodes=allNodes, dispid=dispid)
+                
+    def multigridSort(self, xi=0, xf=-1, yi=0, yf=-1):
+        ## Axiom0: All functions and data structures such as the QuadTree and QuadNode classes are implemented correctly
+        # This means that all states (and there are many) that this algorithm accumulates on is taken axiomatically as correct
+        # even if that is not so (as it is).
+        
+        ## Prec0: self.valMap contains a perfect square matrix (side lengths of n=2^k) with values in the closed interior [0, numStates]
+        ## Prec1: xi, xf, yi, yf are valid integer indices of self.valMap in the two grid directors.
+        ## Prec2: xf>xi and yf>yi, additionally xf-xi==yf-yi
+        
+        ## Post0: The final x and y coordinates of the submatrix are set to the maximum dimmension of the matrix if they are -1
+        if xf == -1:
+            xf = len(self.valMap)
+        if yf == -1:
+            yf = len(self.valMap)
+        ## Post1: The matrix is copied to ensure no information is lost, furthermore we only use the submatrix bounded by the input parameters
+        valMap = np.array(self.valMap)[np.ix_([xi,xf],[yi,yf])]
+        ## Post2: An empty array is used to store the sorted grid
+        outArray = [0] * (len(valMap))**2
+        ## Post3: For each element of the matrix, the item and its respective number of occurences is added to a dictionary valOccurences representing
+        # the number of ccurences of each unique value in the sub matrix
+        valOccurences = {}
+        for row in valMap:
+            for item in row:
+                if item in valOccurences:
+                    valOccurences[item] = valOccurences[item] + 1
+                else:
+                    valOccurences[item] = 1
+        ## Post4: The keys of the dictionary (a list of unique values), are sorted (done natively by quicksort)
+        sortedKeys = sorted(valOccurences.keys())
+        ## Post5: The sorted keys are added to the output arrary outArray in their respective number of occurences
+        i = 0
+        outArray = [0] * (len(valMap))**2
+        for value in sortedKeys:
+            ## Post 5.1: For each value in the sorted keys list, the value is added valOccurences[value] times
+            o = 0
+            while(o<valOccurences[value]):
+                outArray[i] = value
+                i += 1
+                o += 1
+        ## Post6: outArray is reshaped using numpy from a 1D list back into a 2D rasterized matrix
+        outMat = np.array(outArray).reshape(len(valMap), len(valMap))
+        ## Post7: The output matrix outMat is displayed on the console, preferably nicely formatted too
+        print('\n'.join([' '.join([f"{round(item, 3)}" for item in row]) for row in outMat]))
+        
 
 
 def main():
-    dim = 4
-    sC = 0
     size = 5
-
+    
+    sC = 0
 
     ## These must both be greater than 4
     numStates = 1000
-    numColors = 10000
+    numColors = 10
+    
+    ## Do not change these
+    initVal = (True, False, False, False)
+    
+    ## How many generations into the animation we start the quadTree algorithm
+    minGen, maxGen, fitGen, printGen = 0, 0, 11, 0
 
     tileOutline = True
-    alpha = 1
-    ## Do not change these
-    isRadByDim, isRadBySize = False, False
+    
+    borderSet, borderColor, borderVal, dispBorder = {0,1,2,3,4,5,6}, 'black', -1, True
 
-    ## How many generations into the animation we start the quadTree algorithm
-    maxGen = 10
 
-    quadTree = QuadTree(dim, sC, size, numStates, numColors, tileOutline, alpha, isRadByDim, isRadBySize, maxGen)
-    quadTree.printQuadTreeNodes(quadTree.quadRoot, dispid=True)
+    quadTree = QuadTree(size, sC,
+                        numStates, numColors,
+                        initVal,
+                        minGen, maxGen, fitGen, printGen,
+                        tileOutline,
+                        borderSet=borderSet, borderColor=borderColor, borderVal=borderVal, dispBorder=dispBorder)
+    
+    #quadTree.printQuadTreeNodes(quadTree.quadRoot, dispid=True)
+    
+    quadTree.multigridSort(xi=0, xf=5, yi=0, yf=5)
+    
 
 if __name__=='__main__':
     main()

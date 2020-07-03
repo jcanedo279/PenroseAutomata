@@ -34,7 +34,8 @@ class Multigrid:
                 isBoundaried=False, bounds=None, boundaryApprox=True,
                 gol=False, tileOutline=False, alpha=1, printGen=0,
                 borderSet={0,1,2,3,4,5,6}, invalidSets=[], borderColor='black', invalidColors=[],
-                borderVal=0, invalidVals=[], dispBorder=False, dispInvalid=True):
+                borderVal=0, invalidVals=[], dispBorder=False, dispInvalid=True,
+                captureStatistics=False):
         
         ## Multigrid object and instantiate its constant parameters
         self.dim, self.size, self.sC = dim, size, sC
@@ -79,18 +80,25 @@ class Multigrid:
         ## adjacencyMatrix of tile types
         self.ttm = self.genttm()
 
-        ## Tile statistics
-        self.numStable = 0
-        self.numUnstable = 0
-        self.numInvalid = 0
-        self.stableTiles = []
-        self.stablePatches = []
-        self.unstableTiles = []
-        self.specialTiles = []
         ## Boundaries and invalid set
         self.borderSet, self.invalidSets, self.borderColor, self.invalidColors = borderSet, invalidSets, borderColor, invalidColors
         self.borderVal, self.invalidVals = borderVal, invalidVals
         self.dispBorder, self.dispInvalid = dispBorder, dispInvalid
+        
+        self.captureStatistics = captureStatistics
+        
+        ## Tile statistics
+        if self.captureStatistics:
+            self.borderSetLen = 0
+            self.numStable = 0
+            self.numUnstable = 0
+            self.numChanged = 0
+            self.numInvalid = 0
+        
+        self.stablePatches = []
+        self.stableTiles = []
+        self.unstableTiles = []
+        self.specialTiles = []
 
     ###########################
     ## Generate Shift Vector ##
@@ -320,6 +328,9 @@ class Multigrid:
                         vertices = p_rs_ab.vertices
                         tileType = p_rs_ab.tileType
                         p_rs_ab_ind = (r, a, s, b)
+                        
+                        if self.captureStatistics and len(p_rs_ab.neighbourhood) in self.borderSet:
+                            self.borderSetLen += 1
 
                         ## Set the origin of the tiling, this ensures a properly centered animation
                         if(r==0 and s==1 and a==0 and b==0):
@@ -333,6 +344,7 @@ class Multigrid:
                                     p_rs_ab.setColor(self.invalidColors[i])
                             if self.dispInvalid:
                                 self.specialTiles.append(p_rs_ab_ind)
+                            if self.captureStatistics:
                                 self.numInvalid += 1
                         ## Border Value
                         elif len(p_rs_ab.neighbourhood) in self.borderSet:
@@ -340,6 +352,7 @@ class Multigrid:
                             p_rs_ab.setColor(self.borderColor)
                             if self.dispBorder:
                                 self.specialTiles.append(p_rs_ab_ind)
+                            if self.captureStatistics:  
                                 self.numInvalid += 1
                         ## Game Of Life
                         elif self.gol:
@@ -394,18 +407,18 @@ class Multigrid:
                             self.values.append(val)
                         ## Why do I need to do this?
                         self.multiGrid[r][a][s][b] = p_rs_ab
-        self.numTiles = len(self.values)
-        self.valAvg = sum(self.values)/self.numTiles
-        valStdDev = 0
-        for value in self.values:
-            valStdDev += (value-self.valAvg)**2
-        self.valStdDev = math.sqrt(valStdDev/self.numTiles)
+        if self.captureStatistics:
+            self.numTiles = len(self.values)
+            self.valAvg = sum(self.values)/self.numTiles
+            valStdDev = 0
+            for value in self.values:
+                valStdDev += (value-self.valAvg)**2
+            self.valStdDev = math.sqrt(valStdDev/self.numTiles)
 
     ########################
     ## Update Grid States ##
     ########################
     def genNextValuedGridState(self, animating=False, boundaried=False):
-        
         nextGrid = Multigrid(self.dim, self.size, shiftVect=self.shiftVect, sC=self.sC, shiftProp=self.shiftProp,
                             numTilesInGrid=self.numTilesInGrid,
                             startTime=self.startTime, rootPath=self.rootPath, ptIndex=self.ptIndex+1,
@@ -415,15 +428,17 @@ class Multigrid:
                             isBoundaried=self.isBoundaried, bounds=self.bounds, boundaryApprox=self.boundaryApprox,
                             gol=self.gol, tileOutline=self.tileOutline, alpha=self.alpha, printGen=self.printGen,
                             borderSet=self.borderSet, invalidSets=self.invalidSets, borderColor=self.borderColor, invalidColors=self.invalidColors,
-                            borderVal=self.borderVal, invalidVals=self.invalidVals, dispBorder=self.dispBorder, dispInvalid=self.dispInvalid)
+                            borderVal=self.borderVal, invalidVals=self.invalidVals, dispBorder=self.dispBorder, dispInvalid=self.dispInvalid,
+                            captureStatistics=self.captureStatistics)
         nextGrid.multiGrid, nextGrid.zero = copy.deepcopy(self.multiGrid), self.zero
-        nextGrid.numTiles = self.numTiles
         nextGrid.invalidSet = self.invalidSet
         
         self.values = []
-        self.colValDict = {}
         self.stableTiles = []
-
+        
+        if self.captureStatistics:
+            nextGrid.numTiles = self.numTiles
+            self.colValDict = {}
 
         ## Iterate claiscally over each tile in grid
         if self.ptIndex == 0 or (not self.isBoundaried) or self.gol:
@@ -436,23 +451,25 @@ class Multigrid:
                             newTile = nextGrid.multiGrid[r][a][s][b]
                             newTile.neighbourhood = oldTile.neighbourhood
                             self.genNextTile(oldTile, newTile)
+                            if self.captureStatistics and oldTile.color != newTile.color:
+                                self.numChanged += 1 
         ## Iterate over the unstable tiles
         else:
             prevUnstableTiles = self.unstableTiles
-            
-            # if self.dispInvalid:
-            #     for tile in self.specialTiles:
-            #         prevUnstableTiles.append(tile)
             self.unstableTiles = []
             for tInd in prevUnstableTiles:
                 oldTile = self.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
                 newTile = nextGrid.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
                 newTile.neighbour = oldTile.neighbourhood
-                self.genNextTile(oldTile, newTile)      
+                self.genNextTile(oldTile, newTile)
+                if self.captureStatistics and oldTile.color != newTile.color:
+                    self.numChanged += 1 
         self.unstableTiles = list(set(self.unstableTiles))
-        nextGrid.numTiles = len(self.values)
-        nextGrid.valAvg = sum(self.values)/self.numTiles
-        nextGrid.valStdDev = math.sqrt(sum([(val-nextGrid.valAvg)**2 for val in self.values])/self.numTiles)
+        ## Capture Stats related to values
+        if self.captureStatistics:
+            nextGrid.numTiles = len(self.values)
+            nextGrid.valAvg = sum(self.values)/self.numTiles
+            nextGrid.valStdDev = math.sqrt(sum([(val-nextGrid.valAvg)**2 for val in self.values])/self.numTiles)
         if not self.gol:
             nextGrid.unstableTiles = self.unstableTiles
             nextGrid.specialTiles = self.specialTiles
@@ -468,11 +485,13 @@ class Multigrid:
         else:
             if self.ptIndex >= self.printGen:
                 nextGrid.displayTiling()
-        self.percentStable = self.numStable/self.numTilesInGrid
-        self.percentUnstable = self.numUnstable/self.numTilesInGrid
-        self.totalPercent = (self.numStable + self.numUnstable)/self.numTilesInGrid
-        self.normPercentStable = self.numStable/(self.numStable+self.numUnstable)
-        self.normPercentUnstable = self.numUnstable/(self.numStable+self.numUnstable)
+        ## Capture Stats related to stability
+        if self.captureStatistics:
+            self.percentStable = self.numStable/self.numTilesInGrid
+            self.percentUnstable = self.numUnstable/self.numTilesInGrid
+            self.totalPercent = (self.numStable + self.numUnstable)/self.numTilesInGrid
+            self.normPercentStable = self.numStable/(self.numStable+self.numUnstable)
+            self.normPercentUnstable = self.numUnstable/(self.numStable+self.numUnstable)
         if animating:
             return nextGrid, self.ax
         return nextGrid     
@@ -483,22 +502,26 @@ class Multigrid:
                 if (oldTile.r, oldTile.a, oldTile.s, oldTile.b) in invalidSet:
                     newTile.setVal(self.invalidVals[i])
                     newTile.setColor(self.invalidColors[i])
+                    return
         elif len(oldTile.neighbourhood) in self.borderSet:
             newTile.setVal(self.borderVal)
             newTile.setColor(self.borderColor)
+            return
         elif self.gol:
             self.updateTileValsGOL(oldTile, newTile)
+            self.values.append(oldTile.val) 
         else:
             newTile = self.updateTileVals(oldTile, newTile)
+            self.values.append(oldTile.val)
         if type(oldTile.color) is list:
             col = tuple(oldTile.color)
         col = tuple(oldTile.color) if type(oldTile.color) is list else oldTile.color
-        ##### ADD UNSTABLE AND NON BOUDNARIED TILES HERE TO HAVE THEM SHOW UP IN COLOR COMP
-        if col in self.colValDict:
-            self.colValDict[col] += 1
-        else:
-            self.colValDict[col] = 1
-        self.values.append(oldTile.val) 
+        if self.captureStatistics:
+            ##### ADD UNSTABLE AND NON BOUDNARIED TILES HERE TO HAVE THEM SHOW UP IN COLOR COMP
+            if col in self.colValDict:
+                self.colValDict[col] += 1
+            else:
+                self.colValDict[col] = 1
 
     ########################
     ## Tile Value Updates ##
@@ -515,19 +538,23 @@ class Multigrid:
             nBound = self.valToBound(n.val)
             ## Check if neighbours are invalid, a border or unstable
             if (tuple(neighbour) in self.invalidSet) or (len(n.neighbourhood) in self.borderSet) or (nBound!=currBound):
-                self.numUnstable += 1
+                if self.captureStatistics:
+                    self.numUnstable += 1
                 oldTileisStable = False
                 oldTile.setStability(False)
                 self.unstableTiles.append(oldTileIndex)
                 break
         if oldTileisStable:
-            self.numStable += 1
+            if self.captureStatistics:
+                self.numStable += 1
             oldTile.setStability(True)
             oldTileIndex = (oldTile.r, oldTile.a, oldTile.s, oldTile.b)
             self.stableTiles.append(oldTileIndex)
         oldTileneighbourValAvg = oldTileneighbourValTotal/len(oldTile.neighbourhood)
         bound = self.valToBound(oldTileneighbourValAvg)
         pc = self.boundToPC.get(bound)
+        
+        
         # This makes it the merge method
         newTileVal = oldTile.val + (oldTileneighbourValAvg - oldTile.val)*pc
         #maxUpperChange = ((rd.randrange(0, 1000)*(1/1000)))*(self.numStates - newTileVal)
@@ -717,7 +744,7 @@ class Multigrid:
         if animating and self.ptIndex==0:
             return self.ax
         if not animating:
-            self.saveFigure()
+            self.saveFig()
     ## Display boundaries
     def displayBoundaries(self):
         self.setFigExtras()
@@ -765,6 +792,10 @@ class Multigrid:
             shifts = [str(round(i,1)) for i in self.shiftVect]
             self.ax.set_title(f"n={self.dim}, size={self.size}, shiftConstant={self.sC}, shiftVect~[{shifts[0]}, ..., {shifts[self.dim-1]}]")
 
+    def saveFig(self):
+        figPath = f'{self.rootPath}ByTimeStep/gen{self.ptIndex}'
+        plt.savefig(figPath)
+
     #############################
     ## Non Implemented Methods ##
     #############################
@@ -778,9 +809,6 @@ class Multigrid:
             self.patches.append(patch)
         return self.ax
 
-    def saveFigure(self):
-        figPath = f'{self.rootPath}ByTimeStep/gen{self.ptIndex}'
-        plt.savefig(figPath)
 
 
 ###################

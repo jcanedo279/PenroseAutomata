@@ -103,6 +103,7 @@ Now here is the normalized color composition, where each color is represented as
 ![partialMapInvalidSetColComp.png](Examples/partialMapInvalidSetColComp.png?raw=true)
 
 Following is an example of the stability statistics of the same partially mapped tiling automata from the previosu two images.
+
 ![partialMapInvalidSetStability.png](Examples/partialMapInvalidSetStability.png?raw=true)
 
 The following photos are part of a slightly more complete example, where we also include the non-normalized color composition figure and the derivative.

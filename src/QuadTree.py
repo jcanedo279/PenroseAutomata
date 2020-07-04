@@ -230,6 +230,7 @@ class QuadTree:
             if currNode.topRight != None:
                 self.printQuadTreeNodes(currNode.topRight, allNodes=allNodes, dispid=dispid)
                 
+                
     def multigridSort(self, xi=0, xf=-1, yi=0, yf=-1):
         ## Axiom0: All functions and data structures such as the QuadTree and QuadNode classes are implemented correctly
         # This means that all states (and there are many) that this algorithm accumulates on is taken axiomatically as correct

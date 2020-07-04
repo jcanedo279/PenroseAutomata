@@ -682,69 +682,148 @@ class Multigrid:
     ##########################
     ## Grid Display Methods ##
     ##########################
+    def createPatch(self, inputC):
+        r, a, s, b = inputC
+        t = self.multiGrid[r][a][s][b]
+        vertices = t.vertices
+        path = self.genPath(vertices)
+        #color = self.colors[self.ttm[r][s]]
+        ## Check if the tile is invalid
+        if (r, a, s, b) in self.invalidSet:
+            if self.dispInvalid:
+                for i, invalidSet in enumerate(self.invalidSets):
+                    if (r, a, s, b) in invalidSet:
+                        color = self.invalidColors[i]
+                        break                            
+        ## Check if the tile is in the outer boundaries
+        elif len(t.neighbourhood) in self.borderSet:
+            if self.dispBorder:
+                color = self.borderColor
+            # Adaptive Background
+            #################################################################
+            adaptiveBoundary = False
+            if adaptiveBoundary:
+                if self.ptIndex > 0:
+                    bound = self.valToBound(self.valAvg)
+                    ### THIS BECOMES EXPENSIVE
+                    # boundInd = self.bounds.index(bound)
+                    boundInd = np.searchsorted(self.bounds, bound)
+                    if boundInd == 0:
+                        val = rd.randrange(0, bound+1)
+                    else:
+                        val = rd.randrange(self.bounds[boundInd-1], bound+1)
+                    color = self.boundToCol.get(bound)
+                    t.setColor(color)
+                    t.setVal(val)
+            ################################################################
+        elif self.gol:
+            if t.val==0:
+                color = 'white'
+            else:
+                color = 'black'
+        else:
+            color = t.color
+        # Origin
+        # End
+        # Playable Space
+
+        ## Create patch and continue
+        if self.tileOutline:
+            patch = mpatches.PathPatch(path, edgecolor = None, facecolor = color, alpha=self.alpha)
+        else:
+            patch = mpatches.PathPatch(path, edgecolor = color, facecolor = color, alpha=self.alpha)
+        return patch
+    
     ## Display all tiles
     def displayTiling(self, animating=True):
+        ## Axiom0: All functions and data structures such as the QuadTree and QuadNode classes are implemented correctly
+        # This means that all states (and there are many) that this algorithm accumulates on is taken axiomatically as correct
+        # even if that is not so (which it in fact is not so).
+        ## Axiom1: If multip is 'multithread', there are at least six available threads
+        ## Axiom2: If multip is 'multiprocess', there are enough available cpus such that os.cpu_count()-1 is greater than or equal to one
+        
+        ## Intent: the intent of displayTiling() is to iterate over all tiles in the tiling and add the proper patch corresponding to a tiling to the figure.
+        # Furthermore, we can do this in one of three ways, by creating a pool of threads, by creating a pool of processes, and by traditionally iterating linearly
+        # over a loop with a single process and a single thread. Because of Python's GIL (Global Interpreter Lock), we are unable to take advantage of multithreading
+        # in any way that I could find, though this would work in other languages.
+        
+        ## Prec0: animating is an input parameter, either True or False
+        ## Prec1: createPatch is a function that takes in a tuple of four integers (r,a,s,b) st: 0<=r<s<self.dim and -self.size<=a<=b<=self.size
+        ## Prec2: createPatch is implemented properly (being outside the scope of this project) and returns a patch that can be easily plotted in the axis self.ax
+        
+        ## Post0: self.patches is a list containing all the patches in the tiling, where each patch is a plottable object comprising vertices, colors, opacities, etc..
+        ## Post1: self.ax contains the patches in self.patches
+        ## Post2: if the PA is not automated, we save the tiling frames in a folder containing all the tiling frames in the PA animation
+        ## Post3: If the tiling is animated and is the original tiling, self.ax is manually returned
+        
+        ## State0: multip in {'multithreading', 'multiprocessing', allOtherInputs} and the figure is handled by an auxiliary helper method
         self.setFigExtras()
-        self.patches = []
-        for r in range(self.dim):
-            for a in range(-self.size, self.size+1):
-                for s in range(r+1, self.dim):
-                    for b in range(-self.size, self.size+1):
-                        t = self.multiGrid[r][a][s][b]
-                        vertices = t.vertices
-                        path = self.genPath(vertices)
-                        #color = self.colors[self.ttm[r][s]]
-                        ## Check if the tile is invalid
-                        if (r, a, s, b) in self.invalidSet:
-                            if self.dispInvalid:
-                                for i, invalidSet in enumerate(self.invalidSets):
-                                    if (r, a, s, b) in invalidSet:
-                                        color = self.invalidColors[i]
-                                        break                            
-                        ## Check if the tile is in the outer boundaries
-                        elif len(t.neighbourhood) in self.borderSet:
-                            if self.dispBorder:
-                                color = self.borderColor
-                            # Adaptive Background
-                            #################################################################
-                            adaptiveBoundary = False
-                            if adaptiveBoundary:
-                                if self.ptIndex > 0:
-                                    bound = self.valToBound(self.valAvg)
-                                    ### THIS BECOMES EXPENSIVE
-                                    # boundInd = self.bounds.index(bound)
-                                    boundInd = np.searchsorted(self.bounds, bound)
-                                    if boundInd == 0:
-                                        val = rd.randrange(0, bound+1)
-                                    else:
-                                        val = rd.randrange(self.bounds[boundInd-1], bound+1)
-                                    color = self.boundToCol.get(bound)
-                                    t.setColor(color)
-                                    t.setVal(val)
-                            ################################################################
-                        elif self.gol:
-                            if t.val==0:
-                                color = 'white'
-                            else:
-                                color = 'black'
-                        else:
-                            color = t.color
-                        # Origin
-                        # End
-                        # Playable Space
-
-                        ## Create patch and continue
-                        if self.tileOutline:
-                            patch = mpatches.PathPatch(path, edgecolor = None, facecolor = color, alpha=self.alpha)
-                        else:
-                            patch = mpatches.PathPatch(path, edgecolor = color, facecolor = color, alpha=self.alpha)
-                        self.ax.add_patch(patch)
-                        self.patches.append(patch)
-        ## If the pt is the original, manually return the first figure
+        multip = False
+        ## State1: we conditionally map {'multithreading', 'multiprocessing', allOtherInputs} -> {State1.0.0, 1.1.0, 1.2.0}
+        if multip == 'multithread':
+            ## State1.0.0: All necessary multithreading modules are imported
+            from multiprocessing.dummy import Pool as ThreadPool
+            ## State1.0.1: For each of the tiles, the input parameter to the createPatch function is added to the list
+            inputs = []
+            for r in range(self.dim):
+                for a in range(-self.size, self.size+1):
+                    for s in range(r+1, self.dim):
+                        for b in range(-self.size, self.size+1):
+                            inputC = (r, a, s, b)
+                            inputs.append(inputC)
+            ## State 1.0.2: A thread pool of six thread workers is created
+            pool = ThreadPool(6)
+            ## Stable 1.0.3: The thread pool maps the createPatch function onto all the input parameters
+            patches = pool.imap(self.createPatch, inputs)
+            pool.close()
+            pool.join()
+            ## Stable1.0.4: All the patches are added to the axis self.ax for later display
+            self.patches = []
+            for patch in patches:
+                self.ax.add_patch(patch)
+                self.patches.append(patch)
+        elif multip == 'multiprocess':
+            ## State1.1.0: All necessary multiprocessing modules are imported
+            from multiprocessing import get_context
+            ## State1.1.1: For each of the tiles, the input parameter to the createPatch function is added to the list
+            inputs = []
+            for r in range(self.dim):
+                for a in range(-self.size, self.size+1):
+                    for s in range(r+1, self.dim):
+                        for b in range(-self.size, self.size+1):
+                            inputC = (r, a, s, b)
+                            inputs.append(inputC)
+            ## State1.1.2: A multiprocessing pool along with a context switch enables multiprocessing in python3 (accessed through dispPool)
+            with get_context("spawn").Pool(os.cpu_count()-1) as dispPool:
+                ## State1.1.2.0: A multiprocessing pool maps the createPatch function onto all the input parameters in inputs
+                patches = [item for item in dispPool.imap(self.createPatch, inputs)]
+                dispPool.close()
+                dispPool.join()
+            ## State1.1.3: All the patches are added to the figure for display
+            self.patches = []
+            for patch in patches:
+                self.ax.add_patch(patch)
+                self.patches.append(patch)
+        else:
+            ## State1.2.0: All necessary multithreading modules
+            self.patches = []
+            for r in range(self.dim):
+                for a in range(-self.size, self.size+1):
+                    for s in range(r+1, self.dim):
+                        for b in range(-self.size, self.size+1):
+                            ## Staet1.2.0.0: For all input parameters, the patch is constructed and added to the list of patches and figure linearly
+                            inputC = (r, a, s, b)
+                            patch = self.createPatch(inputC)
+                            self.ax.add_patch(patch)
+                            self.patches.append(patch)
+        ## State2: If the pt is the original tiling, the axis is returned manually
         if animating and self.ptIndex==0:
             return self.ax
+        ## State3: If the PA is not animated, the first figure is saved manually to the IO filestructure
         if not animating:
             self.saveFig()
+        ## State4: If we get this far, the figure is automatically saved by an external function
+        
     ## Display boundaries
     def displayBoundaries(self):
         self.setFigExtras()

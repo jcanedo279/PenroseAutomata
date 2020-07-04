@@ -6,6 +6,8 @@ import time
 import numpy as np
 import random as rd
 
+from pprint import pprint
+
 from MultigridList import MultigridList
 
 
@@ -233,20 +235,32 @@ class QuadTree:
         # This means that all states (and there are many) that this algorithm accumulates on is taken axiomatically as correct
         # even if that is not so (as it is).
         
+        ## Intent: The intent of this function is to sort a sub matrix (defined by the indices xi,xf,yi,yf) on self.valMap, in such a way that
+        # repeated elements are efficiently sorted from left to right, then from top to bottom, as if reading lines from a book where the lines are in
+        # strictly non-decreasing order. Finally the sorted sub-matrix is displayed on the console.
+        
         ## Prec0: self.valMap contains a perfect square matrix (side lengths of n=2^k) with values in the closed interior [0, numStates]
         ## Prec1: xi, xf, yi, yf are valid integer indices of self.valMap in the two grid directors.
         ## Prec2: xf>xi and yf>yi, additionally xf-xi==yf-yi
         
-        ## Post0: The final x and y coordinates of the submatrix are set to the maximum dimmension of the matrix if they are -1
+        ## Post0: self.valMap is unaltered
+        ## Post1: outMap contains a square matrix with values sorted as described in the intent
+        ## Post2: outMap is neatly displayed on the console
+        ## Post3: xf>xi and yf>yi, additionally xf-xi==yf-yi
+        
+        ## Invar0: self.valMap is unaltered
+        ## Invar1: xf>xi and yf>yi, additionally xf-xi==yf-yi
+        
+        ## State0: The final x and y coordinates of the submatrix are set to the maximum dimmension of the matrix if they are -1
         if xf == -1:
             xf = len(self.valMap)
         if yf == -1:
             yf = len(self.valMap)
-        ## Post1: The matrix is copied to ensure no information is lost, furthermore we only use the submatrix bounded by the input parameters
-        valMap = np.array(self.valMap)[np.ix_([xi,xf],[yi,yf])]
-        ## Post2: An empty array is used to store the sorted grid
+        ## State1: The matrix is copied to ensure no information is lost, furthermore we only use the submatrix bounded by the input parameters
+        valMap = np.array(self.valMap)[xi:xf, yi:yf]
+        ## State2: An empty array is used to store the sorted grid
         outArray = [0] * (len(valMap))**2
-        ## Post3: For each element of the matrix, the item and its respective number of occurences is added to a dictionary valOccurences representing
+        ## State3: For each element of the matrix, the item and its respective number of occurences is added to a dictionary valOccurences representing
         # the number of ccurences of each unique value in the sub matrix
         valOccurences = {}
         for row in valMap:
@@ -255,22 +269,23 @@ class QuadTree:
                     valOccurences[item] = valOccurences[item] + 1
                 else:
                     valOccurences[item] = 1
-        ## Post4: The keys of the dictionary (a list of unique values), are sorted (done natively by quicksort)
+        ## State4: The keys of the dictionary (a list of unique values), are sorted (done natively by quicksort)
         sortedKeys = sorted(valOccurences.keys())
-        ## Post5: The sorted keys are added to the output arrary outArray in their respective number of occurences
+        ## State5: The sorted keys are added to the output arrary outArray in their respective number of occurences
         i = 0
         outArray = [0] * (len(valMap))**2
         for value in sortedKeys:
-            ## Post 5.1: For each value in the sorted keys list, the value is added valOccurences[value] times
+            ## State5.valueInd: For each value in the sorted keys list, the value is added valOccurences[value] times (where valueInd is the index of
+            # value in sortedKeys)
             o = 0
             while(o<valOccurences[value]):
                 outArray[i] = value
                 i += 1
                 o += 1
-        ## Post6: outArray is reshaped using numpy from a 1D list back into a 2D rasterized matrix
+        ## State6: outArray is reshaped using numpy from a 1D list back into a 2D rasterized matrix
         outMat = np.array(outArray).reshape(len(valMap), len(valMap))
-        ## Post7: The output matrix outMat is displayed on the console, preferably nicely formatted too
-        print('\n'.join([' '.join([f"{round(item, 3)}" for item in row]) for row in outMat]))
+        ## State7: The output matrix outMat is displayed on the console, preferably nicely formatted too
+        pprint(outMat)
         
 
 

@@ -1,4 +1,4 @@
-# Disc
+# Disclaimer
 If you are not here for assignment 3: specialized sorting and multithreading, then an updated version of this repository most likely exists under master
 Otherwise, to run multigridSort() run and edit the main() in /src/QuadTree.py, displayTiling() is always run as long as you never set isBoundaried to True.
 

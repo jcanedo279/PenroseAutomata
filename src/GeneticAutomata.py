@@ -24,6 +24,7 @@ from pathlib import Path
 
 from MultigridList import MultigridList
 
+
 class GeneticAutomata:
     def __init__(self, numColors, numStates, manualCols, boundaryReMap,
                  popSize, poolSize,
@@ -446,10 +447,10 @@ def main():
     manualCols = True
     boundaryReMap = False
     
-    popSize = 100
-    poolSize = 110
+    popSize = 3
+    poolSize = 5
     
-    numGens = 20
+    numGens = 2
     
     GeneticAutomata(numColors, numStates, manualCols, boundaryReMap, popSize, poolSize, numGens)
     

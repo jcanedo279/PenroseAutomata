@@ -2,104 +2,96 @@
 A series of algorithms to automate the PT calculated in the PenroseTiler repository
 
 # Sample Results / Animations
+**The following images and animations are a few examples of the results that are produced by the bellow scripts**
+
 ### Single Frame Tilings
-You can think as each of these tilings as its own universe, that is an unfilled universe with no states.
-Rather, each state here can be thought of as the type of tiling that comprises the space.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;In order to better understand what the animations mean, it is important to understand what each frame represents. While each tile in each frame in each animation has a color assosiated with its state, that state is is not instrinsic to the structure of the tiling, but rather the state is part of a game played on the tiling. The tiling itself is merely a projection of a lattice, where the type of tile represents a sort of geometric frustration brought about from the angle of interaction between the projection function and the mother lattice.  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;You can think as each of these tilings as its own universe, that is an unfilled universe with no states. For clarity's sake, I have given each type of tile in the tiling a unique color, and have painted the origin of the tiling (the radial center of projection given index 0) red. Note that because of the configuration of the tilings, this can mean that the vertices at the center of the lattice that were close to each other (the red ones which are adjacent in the mother lattice) are actually projected to be non adjacent in the tiling.
      Let's remember that:
      - if dim is odd: there are (dim-1)/2 types of tiles
      - if dim is even: there are (dim/2)-1 types of tiles
-All tilings comprise unit lengths and the vertices are uniformly distributed across the tilings with increasing and decreasing densities, such that each density occurs with frequency of the golden ratio power series.
+All tilings comprise unit lengths and the vertices are uniformly distributed across the tilings with increasing and decreasing densities, such that each density occurs with frequency of the power series of 1/(golden ratio)
 
-     The following tilings are generated in high dimmensions with smaller and smaller sizes:
+The following tilings are generated in progressively higher dimmensions with progressively smaller sizes:  
 **dim=100 tiling**
 - <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n100.png>
 
 **dim=209 tiling**
 - <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n209Out.png>
 
-**dim=401 tiling**
-The following tiling contians over 2 million tiles
+**dim=401 tiling** *The following tiling contians over 2 million tiles*
 - <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401Out.png>
 - <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401Mid.png>
 - <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n401In.png>
 
-**dim=501 tiling**
-The following tiling contians over 1.2 million tiles
+**dim=501 tiling** *The following tiling contians over 1.2 million tiles*
 - <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n501Out.png>
 - <https://github.com/jcanedo279/PenroseAutomata/blob/master/Examples/n501In.png>
 
 
 ### Cellular Automata
-**Convergent merging algorithms:**
-
-We can set any initial condition on any tiing (the more symmetric the easier) then apply state transitions for each tile relative to surrounding tile states.
+**Convergent merging algorithms:**  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;We can set any initial condition on any tiing (the more symmetric the easier) then apply state transitions for each tile relative to surrounding tile states.
 This has the effect of averaging the values in an autonomistic fassion in that each automaton has innate variation in its transition rules that allows for emergent behaviour.
 ![convergentMerge1.gif](Examples/convergentMerge1.gif "convergent merge 1")
 ![convergentMerge2.gif](Examples/convergentMerge2.gif "convergent merge 2")
 
-**Redundantly mapped states from 7 and 70 dimmensions:**
-A redundantly mapping algorithm is one in which the bouding function that maps from the number of states to the number of boundaries is not one to one.
-That is, that there are more states than boundaries (preferably by at least one order of magnitude).
-
+**Redundantly mapped states from 7 and 70 dimmensions:**  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A redundantly mapping algorithm is one in which the bouding function that maps from the number of states to the number of boundaries is not one to one.
+That is, that there are more states than boundaries (preferably by at least one order of magnitude).  
 ![multiMap1.gif](Examples/multiMap1.gif "multiMap 1")
 ![multiMap2.gif](Examples/multiMap2.gif "multiMap 2")
 
-**Partially mapped states:**
-A partially mapping algorithm is one in which the bouding function is not only one to one, but also the transition from state to state is slow.
+**Partially mapped states:**  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A partially mapping algorithm is one in which the bouding function is not only one to one, but also the transition from state to state is slow.
 Note that these algorithms also use adaptive boundaries as they are computationally heavy to recreate, additionally the four following tilings are made using a
 method that approximates the boundaries (they are very heuristic and not so accurate), although they are accurate at predicting the final divergent or convergent
 state of the tiling.
-
 ![partialMapEven1.gif](Examples/partialMapEven1.gif "partialMap even 1")
 ![partialMapEven2.gif](Examples/partialMapEven2.gif "partialMap even 2")
 ![partialMapOdd1.gif](Examples/partialMapOdd1.gif "partialMap odd 1")
 ![partialMapOdd2.gif](Examples/partialMapOdd2.gif "partialMap odd 2")
 
-The two following automata are made by using a heavier algorithm that is completely (or at least almost) accurate. Note that for accurate adaptive boundaries, there is some
-fluctuation at the backgroud (which sets a potential reference to the tiling). Adaptive boundary approximations have no such fluctuations.
-
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The two following automata are made by using a heavier algorithm that is completely (or at least almost) accurate. Note that for accurate adaptive boundaries, there is some fluctuation at the backgroud (which sets a potential reference to the tiling). Adaptive boundary approximations have no such fluctuations.
 ![partialMapEvenActual.gif](Examples/partialMapEvenActual.gif "partialMap even actual")
 ![partialMapEvenActual2.gif](Examples/partialMapEvenActual2.gif "partialMap even actual 2")
 
-**Deep potential wells as acheieved by certain even dimmensions:**
-In certain even dimmensions (8, 10, 12), deep potential wells form where the geometric/topological frustration of the vertices on the plane force
+**Deep potential wells as acheieved by certain even dimmensions:**  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;In certain even dimmensions (8, 10, 12), deep potential wells form where the geometric/topological frustration of the vertices on the plane force
 tiling patterns to become localized almost forming emmergent patterns/units. Here certain geometric properties of the tilings make it so that information
 in these systems tend towards potential wells whose boundaries are defined by the emergent patterns.
-
 Pay no attention to the slight white space here, this is the fault of a non-perfect sV generation algorithm that was used to generate these, and has since been changed.
 ![deepWells1.gif](Examples/deepWells1.gif "deep well 1")
 ![deepWells2.gif](Examples/deepWells2.gif "deep well 2")
 
-**Combining deep potential wells and redundant mapping:**
-In contrast to the more crystalline state evolution of deep potential well algorithms, redundantly mapped algorithms on potential wells form amorphous patterns
+**Combining deep potential wells and redundant mapping:**  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;In contrast to the more crystalline state evolution of deep potential well algorithms, redundantly mapped algorithms on potential wells form amorphous patterns
 similar to those of redundant mapping algs but more crystalline.
-
 ![deepWellMultiMap1.gif](Examples/deepWellMultiMap1.gif "deep well multiMap 1")
 ![deepWellMultiMap2.gif](Examples/deepWellMultiMap2.gif "deep well multiMap 2")
 
-**Adaptive boundary:**
-Adaptive bundary algorithms are those in which the background or end of the tiling are updated via a function.
+**Adaptive boundary:**  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Adaptive bundary algorithms are those in which the background or end of the tiling are updated via a function.
 Here the function is the boundary color of the mean value of the previous grid state.
 ![adaptiveBoundary.gif](Examples/adaptiveBoundary.gif "Adaptive boundary")
 
-**Game of life pattern that diverges:**
-In a gol algorithm in which a high neighbour count seeds an on state, we get a divergent system.
+**Game of life pattern that diverges:**  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;In a gol algorithm in which a high neighbour count seeds an on state, we get a divergent system.
 Here we are on if nCount is greater than 4 and smaller than 7.
-
 ![divergentGOL.gif](Examples/divergentGOL.gif "gol pattern that diverges")
 
-**Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells:**
-If we shift the acceptance bounds down by one we get a quickly convergent algorithm, where we are left with some sample 10d pt gol oscillators.
+**Sample oscillators from 10 dimmensions, even dimmensions create deeper state wells:**  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If we shift the acceptance bounds down by one we get a quickly convergent algorithm, where we are left with some sample 10d pt gol oscillators.
 Here we are on if nCount is greater than 3 and smaller than 6.
 ![oscillatorSampleGOL.gif](Examples/oscillatorSampleGOL.gif "Sample oscillators from 10 dimmensions")
 
-**More complete examples:**
-Let's take a look at two slightly more complete examples of the output that will be generated under 'outputData/poolMultigridData/gaInd/gaGen/listInd/'
+**More complete examples:**  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Let's take a look at two slightly more complete examples of the output that will be generated under 'outputData/poolMultigridData/gaInd/gaGen/listInd/'
 Here a series of statistics generated by the genetic algorithms with our input parameters. Specifically, the genetic algorithm gaInd, specifically generation gaGen, and even more specifically, the listInd automata gives us lot's of interesting data to acompany the pretty animations. After all, we are trying to rigorously analyze the behaviour of these automata.
 Let's suppose that we specify a traditional boundary set, along with a set of four invalid tiles marked in black with contant values. Take a look at the following animation along with the accompanying normalized color composition and stability statistics. Note that during the animation, the minimum boundary set always inclused the set of tiles around each of the black invalid tiles that we manually set.
 ![partialMapInvalidSet.gif](Examples/partialMapInvalidSet.gif "Animation of partialMap with invalid set")
 
-Now here is the normalized color composition, where each color is represented as a percentage of the evaluated tiles at a certain index. We use a normalized representation because as tiling automatas progress there is a tendency for a potential sink to be reached (a convergent system) where the number of evaluated boundary tiles is very small and data becomes hard to interpret.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Now here is the normalized color composition, where each color is represented as a percentage of the evaluated tiles at a certain index. We use a normalized representation because as tiling automatas progress there is a tendency for a potential sink to be reached (a convergent system) where the number of evaluated boundary tiles is very small and data becomes hard to interpret.  
 ![partialMapInvalidSetColComp.png](Examples/partialMapInvalidSetColComp.png?raw=true)
 
 Following is an example of the stability statistics of the same partially mapped tiling automata from the previosu two images.
@@ -115,7 +107,7 @@ The normalized color composition:
 The non-normalized color composition:
 ![completeExampleColComp.png](Examples/completeExampleColComp.png?raw=true)
 
-The stability statistics:
+The stability statistics:  
 ![completeExampleStability.png](Examples/completeExampleStability.png?raw=true)
 
 Th derivative statistics, which is the average change in the number of tiles whose state changed:
@@ -124,14 +116,22 @@ Th derivative statistics, which is the average change in the number of tiles who
 
 
 # The Directory
-The PenroseAutomata repository comprises four parts:
-- A 'src' folder, containing the scripts:
+The PenroseAutomata repository comprises five parts:
+- A 'src/' folder, containing the scripts:
      - The main python scripts (MultigridList, Multigrid, MultigridCell)
      - The supplementary scripts (QuadTree)
-- An 'outputData' folder, where the outputs of the src files go
-     - 'fitMultigridData': contains all the data of the tiles who survive past fitGen generations
-     - 'unfitMultigridData': contains the data of the tiles who do not survive past fitGen generations
+- An 'outputData/' folder, where the outputs of the src files go
+     - 'fitMultigridData/': contains all the data of the tiles who survive past fitGen generations
+     - 'unfitMultigridData/': contains the data of the tiles who do not survive past fitGen generations
+     - 'poolMultigridData/': contains the data of the genetic algorithm
+          - 'fittest.json': the fittest member of each population is saved here, if this file is detected, then an initial population will be generated from save. If it is not detected, then a random initial population will be generated and a new 'fittest.json' will be created.
+          - 'gaStats/': contains the average fitness per genetic algorithm generation plotted out for each genetic algorithm created
+          - 'gaIndY/': contains the genetic algorithm with index 'Y'
+               - 'gaGenG/' contains the generation G of genetic algorithm Y
+                    = 'listIndX/': contains the multigridListData of MultigridList X in generation G in ga Y
+                    - 'fitDisp/': contains the multigridListData of the fittest MultigridList in generation G in ga Y, the gene of this grid is saved to 'fittest.json'
 - An 'Examples' folder, where any permanent data can be saved, ie favorite tiles
+- An 'About The Method' folder containing a more mathematical description of this problem and the methods used to solve it.
 - A 'README.md' file, this is where we currently are
 
 # How To Run

@@ -18,18 +18,20 @@ class MultigridCell:
         self.g_r = g_r
         self.g_s = g_s
 		
-		# p is the point (kept here for efficiency)
-        self.p = self.getPointCord(self.r, self.s, self.a, self.b)
-        self.p_x = self.p[0]
-        self.p_y = self.p[1]
-		
-        self.r_eqn = self.getHyperplaneEqn(r, a, g_r)
-        self.s_eqn = self.getHyperplaneEqn(s, b, g_s)
+        makeEqn = False
+        if makeEqn:
+            self.r_eqn = self.getHyperplaneEqn(r, a, g_r)
+            self.s_eqn = self.getHyperplaneEqn(s, b, g_s)
 
         self.tileType = tileType
 
     def setVertices(self, vertices):
         self.vertices = vertices
+        
+        # p is the point (kept here for efficiency)
+        self.p = self.getVertexPointCord()
+        self.p_x = self.p[0]
+        self.p_y = self.p[1]
 
     def setVal(self, val):
         self.val = val
@@ -73,6 +75,11 @@ class MultigridCell:
         else:
             y_rs = y_num / y_den
 
+        return (x_rs, y_rs)
+    
+    def getVertexPointCord(self):
+        x_rs = sum([vert[0] for vert in self.vertices])
+        y_rs = sum([vert[1] for vert in self.vertices])
         return (x_rs, y_rs)
 
     def genNormVector(self, i):

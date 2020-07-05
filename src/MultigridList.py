@@ -3,8 +3,8 @@ import os
 import glob
 import shutil
 
-import cProfile
-import pstats
+#import cProfile
+#import pstats
 
 import json
 
@@ -115,7 +115,6 @@ class MultigridList:
         ## Parameter Safety Check
         if iterationNum==0:
             self.parameterSafetyCheck()
-            
             
         ## Independent Actions of Constructor ##
         self.invalidSet = set()
@@ -261,6 +260,7 @@ class MultigridList:
             self.currentGrid = nextGrid
             ## I think this helps with the memory leaks
             del origGrid
+            
         ## Format animation title
         sM = ''
         if self.sP[0]:

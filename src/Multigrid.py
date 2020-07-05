@@ -59,20 +59,23 @@ class Multigrid:
         self.ptIndex = ptIndex
         self.printGen = printGen
 
-        ## Number of states and color maps
-        self.numStates, self.colors = numStates, colors
 
-        ## Initial value conditions and rule defs
-        self.isValued, self.initialValue, self.valRatio = isValued, initialValue, valRatio
+        self.isValued = isValued
+        if self.isValued:
+            ## Number of states and color maps
+            self.numStates, self.colors = numStates, colors
 
-        self.boundToCol, self.boundToPC = boundToCol, boundToPC
+            ## Initial value conditions and rule defs
+            self.initialValue, self.valRatio = initialValue, valRatio
 
-        ## Boundarying
-        self.isBoundaried, self.bounds, self.boundaryApprox = isBoundaried, bounds, boundaryApprox
-        self.boundarySet = set(self.bounds)
+            self.boundToCol, self.boundToPC = boundToCol, boundToPC
 
-        ## Game of life settings
-        self.gol=gol
+            ## Boundarying
+            self.isBoundaried, self.bounds, self.boundaryApprox = isBoundaried, bounds, boundaryApprox
+            self.boundarySet = set(self.bounds)
+
+            ## Game of life settings
+            self.gol=gol
 
         ## Misc parameters
         self.tileSize, self.tileOutline, self.alpha = 10, tileOutline, alpha
@@ -205,7 +208,9 @@ class Multigrid:
                         self.allTiles.append((r, a, s, b))
                         
                         p_rs_ab = MultigridCell(self.dim, r, s, a, b, self.shiftVect[r], self.shiftVect[s], tileType)
-                        p_rs_ab.setStability(False)
+                        
+                        if self.isValued:
+                            p_rs_ab.setStability(False)
 
                         ## Initialize vertices
                         vertices = list(self.imagToReal(self.tileParamToVertices(r, s, a, b)))
@@ -215,6 +220,10 @@ class Multigrid:
                             vList.append((x, next(it)))
                         p_rs_ab.setVertices(vList)
                         self.multiGrid[r][a][s][b] = p_rs_ab
+                        
+                        ## Set the origin of the tiling, this ensures a properly centered animation
+                        if(r==0 and s==1 and a==0 and b==0):
+                            self.zero = [p_rs_ab.vertices[0][0], p_rs_ab.vertices[0][1]]
 
     def tileParamToVertices(self, r, s, a, b):
         ## Return a generator object of tile vertices
@@ -332,10 +341,6 @@ class Multigrid:
                         if self.captureStatistics and len(p_rs_ab.neighbourhood) in self.borderSet:
                             self.borderSetLen += 1
 
-                        ## Set the origin of the tiling, this ensures a properly centered animation
-                        if(r==0 and s==1 and a==0 and b==0):
-                            self.zero = [vertices[0][0], vertices[0][1]]
-
                         ## Invalid value
                         if p_rs_ab_ind in self.invalidSet:
                             for i, invalidSet in enumerate(self.invalidSets):
@@ -406,7 +411,7 @@ class Multigrid:
                             p_rs_ab.setVal(val)
                             self.values.append(val)
                         ## Why do I need to do this?
-                        self.multiGrid[r][a][s][b] = p_rs_ab
+                        self.multiGrid[r][a][s][b] = p_rs_ab            
         if self.captureStatistics:
             self.numTiles = len(self.values)
             self.valAvg = sum(self.values)/self.numTiles
@@ -878,14 +883,49 @@ class Multigrid:
     #############################
     ## Non Implemented Methods ##
     #############################
-    def selectiveDisplay(self, backgroundCol, selection, selectionCol):
-        for tInd in self.allTiles:
-            t = self.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
-            path = self.genPath(t.vertices)
-            tCol = selectionCol if tInd in selection else backgroundCol
-            patch = mpatches.PathPatch(path, edgecolor = None, facecolor = tCol, alpha=self.alpha)
-            self.ax.add_patch(patch)
-            self.patches.append(patch)
+    def nextSelective(self, currTInd, d, source, target):
+        nextGrid = Multigrid(self.dim, self.size, shiftVect=self.shiftVect, sC=self.sC, shiftProp=self.shiftProp,
+                            numTilesInGrid=self.numTilesInGrid,
+                            startTime=self.startTime, rootPath=self.rootPath, ptIndex=self.ptIndex+1,
+                            isValued=False,
+                            tileOutline=self.tileOutline, alpha=self.alpha, printGen=self.printGen,
+                            borderSet=self.borderSet, invalidSets=self.invalidSets, borderColor=self.borderColor, invalidColors=self.invalidColors,
+                            borderVal=self.borderVal, invalidVals=self.invalidVals, dispBorder=self.dispBorder, dispInvalid=self.dispInvalid)
+        nextGrid.multiGrid, nextGrid.zero = copy.deepcopy(self.multiGrid), self.zero
+        nextGrid.invalidSet = self.invalidSet
+        nextGrid.allTiles = self.allTiles
+        
+        nextGrid.dictDisplay(currTInd, d, source, target)
+        
+        return nextGrid, self.ax
+    
+    def dictDisplay(self, currTInd, d, source, target):
+        self.setFigExtras()
+        for color, setOfVals in d.items():
+            for tInd in setOfVals:
+                t = self.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
+                path = self.genPath(t.vertices)
+                tCol = color
+                if currTInd == target and (tInd == currTInd or t == source):
+                    tCol = 'gold'
+                elif tInd == currTInd:
+                    tCol = 'blue'
+                elif tInd in self.invalidSet:
+                    for i, invalidSet in enumerate(self.invalidSets):
+                        if tInd in invalidSet:
+                            tCol = self.invalidColors[i]
+                            break
+                elif len(t.neighbourhood) in self.borderSet:
+                    tCol = self.borderColor
+                elif tInd == source:
+                    tCol = 'red'
+                elif tInd == target:
+                    tCol = 'red'
+                edgeCol = None if self.tileOutline else tCol
+                patch = mpatches.PathPatch(path, edgecolor = edgeCol, facecolor = tCol, alpha=self.alpha)
+                self.ax.add_patch(patch)
+        # figPath = f'{self.rootPath}ByTimeStep/gen{self.ptIndex}'
+        # plt.savefig(figPath)
         return self.ax
 
 

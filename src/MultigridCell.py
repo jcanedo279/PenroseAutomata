@@ -78,8 +78,8 @@ class MultigridCell:
         return (x_rs, y_rs)
     
     def getVertexPointCord(self):
-        x_rs = sum([vert[0] for vert in self.vertices])
-        y_rs = sum([vert[1] for vert in self.vertices])
+        x_rs = sum([vert[0] for vert in self.vertices])/4
+        y_rs = sum([vert[1] for vert in self.vertices])/4
         return (x_rs, y_rs)
 
     def genNormVector(self, i):

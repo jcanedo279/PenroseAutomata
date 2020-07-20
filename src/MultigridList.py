@@ -675,7 +675,7 @@ class MultigridList:
         avgGenDiffsFig.add_trace(go.Scatter(x=avgGenDiffx, y=self.avgGenDiffs, name='avgColDiff', line=dict(color='black', width=4)))
         avgGenDiffsFig.update_layout(title='Derivative of average color composition',
                                      xaxis_title='tile index',
-                                     yaxis_title='average change')
+                                     yaxis_title='number of tiles whose state changed')
         avgGenDiffsFig.write_image(self.genAvgChangeTrashPath)
     def saveFitnessFig(self):
         self.maxNumEvaluated = self.numTilesInGrid - self.numNotEvaluated

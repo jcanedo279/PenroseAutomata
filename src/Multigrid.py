@@ -196,14 +196,17 @@ class Multigrid:
     #####################################
     ## Generate Vertices For All Tiles ##
     #####################################
-    def genTilingVerts(self):
+    def genTilingVerts(self, target=None):
         self.multiGrid = [[[[None for b in range(-self.size, self.size+1)] for s in range(self.dim)] for a in range(-self.size, self.size+1)] for r in range(self.dim)]
         self.allTiles = []
         for r in range(self.dim):
             for a in range(-self.size, self.size+1):
                 for s in range(r+1, self.dim):
                     for b in range(-self.size, self.size+1):
-
+                        ## If dim is even, then make sure we don't generate invalid tilings
+                        if self.dim%2 == 0 and s == r + ((self.dim/2)-1):
+                                continue
+                        
                         tileType = self.ttm[r][s]
                         self.allTiles.append((r, a, s, b))
                         
@@ -219,6 +222,11 @@ class Multigrid:
                         for x in it:
                             vList.append((x, next(it)))
                         p_rs_ab.setVertices(vList)
+                        
+                        if target != None:
+                            tCord = p_rs_ab.p
+                            p_rs_ab.dist = math.sqrt(((tCord[0]-target[0])**2) + ((tCord[1]-target[1])**2))
+                        
                         self.multiGrid[r][a][s][b] = p_rs_ab
                         
                         ## Set the origin of the tiling, this ensures a properly centered animation
@@ -233,7 +241,7 @@ class Multigrid:
             kp = 1j*(normVect[r]*(b-self.shiftVect[s]) - normVect[s]*(a-self.shiftVect[r])) / 0.00001
         else:
             kp = 1j*(normVect[r]*(b-self.shiftVect[s]) - normVect[s]*(a-self.shiftVect[r])) / normVect[s-r].imag
-        k = [0--((kp/i).real+t)//1 for i, t in zip(normVect, self.shiftVect)]
+        k = [1+((kp/i).real+t)//1 for i, t in zip(normVect, self.shiftVect)]
         for k[r], k[s] in [(a, b), (a+1, b), (a+1, b+1), (a, b+1)]:
             yield sum(x*t for t, x in zip(normVect, k))
     
@@ -263,6 +271,9 @@ class Multigrid:
             for a in range(-self.size, self.size+1):
                 for s in range(r+1, self.dim):
                     for b in range(-self.size, self.size+1):
+                        ## If dim is even, then make sure we don't generate invalid tilings
+                        if self.dim%2 == 0 and s == r + ((self.dim/2)-1):
+                                continue
                         t = self.multiGrid[r][a][s][b]
                         t.nonDiagTileNeighbourhood = []
                         t.diagTileNeighbourhood = []
@@ -309,6 +320,9 @@ class Multigrid:
             for a in range(-self.size, self.size+1):
                 for s in range(r+1, self.dim):
                     for b in range(-self.size, self.size+1):
+                        ## If dim is even, then make sure we don't generate invalid tilings
+                        if self.dim%2 == 0 and s == r + ((self.dim/2)-1):
+                                continue
                         p_rs_ab = self.multiGrid[r][a][s][b]
                         for nInd in p_rs_ab.neighbourhood:
                             n = self.multiGrid[nInd[0]][nInd[1]][nInd[2]][nInd[3]]
@@ -810,7 +824,7 @@ class Multigrid:
                 self.ax.add_patch(patch)
                 self.patches.append(patch)
         else:
-            ## State1.2.0: All necessary multithreading modules
+            ## State1.2.0: Non-threaded, sequential display
             self.patches = []
             for r in range(self.dim):
                 for a in range(-self.size, self.size+1):
@@ -906,10 +920,10 @@ class Multigrid:
                 t = self.multiGrid[tInd[0]][tInd[1]][tInd[2]][tInd[3]]
                 path = self.genPath(t.vertices)
                 tCol = color
-                if currTInd == target and (tInd == currTInd or t == source):
-                    tCol = 'gold'
+                if tInd in {source, target}:
+                    tCol = 'red'
                 elif tInd == currTInd:
-                    tCol = 'blue'
+                    tCol = 'gold'
                 elif tInd in self.invalidSet:
                     for i, invalidSet in enumerate(self.invalidSets):
                         if tInd in invalidSet:
@@ -917,13 +931,19 @@ class Multigrid:
                             break
                 elif len(t.neighbourhood) in self.borderSet:
                     tCol = self.borderColor
-                elif tInd == source:
-                    tCol = 'red'
-                elif tInd == target:
-                    tCol = 'red'
                 edgeCol = None if self.tileOutline else tCol
                 patch = mpatches.PathPatch(path, edgecolor = edgeCol, facecolor = tCol, alpha=self.alpha)
                 self.ax.add_patch(patch)
+                
+                # circ = mpatches.Circle(tuple(t.p), 4, linestyle='solid', edgecolor=edgeCol, facecolor=tCol, alpha=self.alpha)
+                # self.ax.add_patch(circ)                
+                
+                circM = True
+                if circM:
+                    patch = mpatches.Circle(tuple(t.p), self.tileSize/2, linestyle='solid', edgecolor=edgeCol, facecolor=tCol, alpha=self.alpha)
+                else:
+                    patch = mpatches.PathPatch(path, edgecolor = edgeCol, facecolor = tCol, alpha=self.alpha)
+                
         # figPath = f'{self.rootPath}ByTimeStep/gen{self.ptIndex}'
         # plt.savefig(figPath)
         return self.ax
@@ -946,6 +966,9 @@ def main():
     # multi.genTiling()
     # multi.genTileNeighbourhoods()
     # multi.displayTiling()
+    
+    m = Multigrid(5, 5, shiftVect=[0,0,0,0,0], rootPath='s', bounds=[], borderSet={0,1,2,3,4,5,6})
+    print(list(m.tileParamToVertices(0,2,1,3)))
     pass
 
 if __name__ == '__main__':

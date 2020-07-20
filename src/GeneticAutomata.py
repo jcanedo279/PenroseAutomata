@@ -446,10 +446,10 @@ def main():
     manualCols = True
     boundaryReMap = False
     
-    popSize = 3
-    poolSize = 5
+    popSize = 20
+    poolSize = 100
     
-    numGens = 5
+    numGens = 20
     
     GeneticAutomata(numColors, numStates, manualCols, boundaryReMap, popSize, poolSize, numGens)
     

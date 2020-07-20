@@ -1,0 +1,8 @@
+*.gif
+*.json
+*.png
+
+.DS_Store
+__pycache__
+
+*.pyc
